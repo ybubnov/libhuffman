@@ -17,9 +17,15 @@
 #define BUF_SIZE 65536
 
 typedef struct {
+    int16_t parent;
+    int16_t left;
+    int16_t right;
+} huf_node;
+
+typedef struct {
     int fd;
     uint64_t length;
-    int64_t* tree;
+    huf_node* tree;
     uint64_t msize;
 } huf_ctx_t;
 
