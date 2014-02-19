@@ -20,8 +20,6 @@ int main(int argc, char** argv)
     }
 
     huf_decode(hctx);
-
-    printf("here\n");
     huf_free(&hctx);
 
     return 0;

@@ -10,9 +10,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define UINT32_LIMIT 0xffffffff
-#define UINT16_LIMIT 0xffff
-#define UINT8_LIMIT 0xff
 
 #define BUF_SIZE 65536
 
