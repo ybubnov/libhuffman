@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-int huf_mktree(huf_ctx_t hctx) 
+
+int huf_mktree(huf_ctx_t* hctx) 
 {    
     int i, j, index, start = 256;
     uint8_t buf[BUF_SIZE];
@@ -15,7 +16,7 @@ int huf_mktree(huf_ctx_t hctx)
     }
 
     do {
-        if((obtained = read(hctx.fd, buf, BUF_SIZE)) <= 0) {
+        if((obtained = read(hctx->fd, buf, BUF_SIZE)) <= 0) {
             break;
         }
 
@@ -29,21 +30,25 @@ int huf_mktree(huf_ctx_t hctx)
         }
 
         total += obtained;
-    } while(total < hctx.length);
+    } while(total < hctx->length);
 
 
     int64_t rate, rate1, rate2;
-    int16_t parent, index1, index2, node = 256;
+    int16_t index1, index2, node = 256;
+    huf_node_t** shadow_tree;
+
+   if ((shadow_tree = (huf_node_t**)calloc(512, sizeof(huf_node_t*))) == 0) {
+       return -1;
+   } 
 
     for (i = start; i < 512; i++) {
         index1 = index2 = -1;
         rate1 = rate2 = 0;
 
         for (j = i; j < node; j++) {
-            parent = hctx.tree[j].parent;
             rate = rates[j];
 
-            if (rate && parent == -1) {
+            if (rate) {
                 if (!rate1) {
                     rate1 = rate;
                     index1 = j;
@@ -62,59 +67,90 @@ int huf_mktree(huf_ctx_t hctx)
             }
         }
 
-        printf("rate1:  %5lld\t%5d\trate2:  %5lld\t%5d\n", 
-                (long long)rate1, index1, (long long)rate2, index2);
 
         if (index1 == -1 || index2 == -1) {
+            hctx->root = shadow_tree[node - 1];
             break;
         }
 
-        hctx.tree[index1].parent = node;
-        hctx.tree[index2].parent = node;
-        hctx.tree[node].left = index1;
-        hctx.tree[node].right = index2;
+        if (!shadow_tree[index1]) {
+            if ((shadow_tree[index1] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                return -1;
+            }
+        }
+
+        if (!shadow_tree[index2]) {
+            if ((shadow_tree[index2] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                return -1;
+            }
+        }
+
+        if ((shadow_tree[node] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+            return -1;
+        }
+
+        if (index1 < 256) {
+            hctx->leaves[index1] = shadow_tree[index1];
+        }
+
+        if (index2 < 256) {
+            hctx->leaves[index2] = shadow_tree[index1];
+        }
+
+        shadow_tree[index1]->parent = shadow_tree[node];
+        shadow_tree[index2]->parent = shadow_tree[node];
+        shadow_tree[node]->left = shadow_tree[index1];
+        shadow_tree[node]->right = shadow_tree[index2];
 
         rates[node] = rate1 + rate2;
+        rates[index1] = 0;
+        rates[index2] = 0;
         node++;
     }
 
 
-    for (i = 0; i < 512; i++) {
-        printf("%5d:\t%8lld\t%6d\n", i, (long long)rates[i], hctx.tree[i].parent);
-    } 
-
+    free(shadow_tree);
     free(rates);
     return 0;
 }
 
 int huf_init(int fd, uint64_t length, huf_ctx_t* hctx) 
 {
-    int i;
     hctx->fd = fd;
     hctx->length = length;
-    hctx->msize = 0;
+    hctx->root = 0;
     
-    if ((hctx->tree = (huf_node*)calloc(512, sizeof(huf_node))) == 0) {
+    if ((hctx->leaves = (huf_node_t**)calloc(256, sizeof(huf_node_t*))) == 0) {
         return -1;
     }
 
-    for (i = 0; i < 512; i++) {
-        hctx->tree[i].parent = -1;
-        hctx->tree[i].left = -1;
-        hctx->tree[i].right = -1;
-    }
-
     return 0;
+}
+
+void huf_free_tree(huf_node_t* node)
+{
+    if (node->left) {
+        huf_free_tree(node->left);
+        free(node->left);
+    }
+    
+    if (node->right) {
+        huf_free_tree(node->right);
+        free(node->right);
+    }
 }
 
 void huf_free(huf_ctx_t* hctx)
 { 
-    free(hctx->tree);
+    huf_free_tree(hctx->root);
+    free(hctx->root);
+    free(hctx->leaves);
 }
 
 
-int huf_decode(huf_ctx_t hctx)
+int huf_decode(huf_ctx_t* hctx)
 {
     huf_mktree(hctx);
     return 0;
 }
+

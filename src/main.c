@@ -19,7 +19,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    huf_decode(hctx);
+    huf_decode(&hctx);
     huf_free(&hctx);
 
     return 0;
