@@ -21,13 +21,14 @@ typedef struct huf_node_t {
 
 
 typedef struct {
-    int fd;
+    int ifd;
+    int ofd;
     uint64_t length;
     huf_node_t** leaves;
     huf_node_t* root;
 } huf_ctx_t;
 
-int huf_init(int fd, uint64_t length, huf_ctx_t* hctx);
+int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx);
 int huf_decode(huf_ctx_t* hctx);
 int huf_encode(huf_ctx_t hctx);
 void huf_free(huf_ctx_t* hctx);

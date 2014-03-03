@@ -1,4 +1,4 @@
-.PHONY: all, clean
+.PHONY: all, clean, debug
 
 CFLAGS = -Wall -Werror
 SPATH = src/
@@ -9,9 +9,9 @@ all: main
 debug: maind
 
 clean:
-	rm -rf huffman.o main maind
+	rm -rf $(SPATH)huffman.o huffmand.o main maind
 
-maind: main.c huffman.o
+maind: $(SPATH)main.c huffmand.o
 	$(CC) -g $(CFLAGS) $^ -o $@
 
 main: $(SPATH)main.c $(SPATH)huffman.o
@@ -19,6 +19,9 @@ main: $(SPATH)main.c $(SPATH)huffman.o
 
 huffman.o: $(SPATH)huffman.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+huffmand.o: $(SPATH)huffman.c
+	$(CC) $(CFLAGS) -c -g $< -o $@
 
 huffman.c: $(SPATH)huffman.h
 
