@@ -9,7 +9,7 @@ int main(int argc, char** argv)
     int ifd, ofd;
     struct stat st;
     char ifl_name[256] = "/home/kubrick/test/file.txt";
-    char ofl_name[256] = "/home/kubrick/test/file.txt.huf";
+    char ofl_name[256] = "/home/kubrick/test/out.txt";
     huf_ctx_t hctx;
     
     stat(ifl_name, &st);
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_CREAT)) < 0) {
+    if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU)) < 0) {
         return -1;
     }
 
@@ -34,3 +34,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
+

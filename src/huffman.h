@@ -31,6 +31,7 @@ typedef struct {
     int ifd;
     int ofd;
     uint64_t length;
+    huf_decode_t* table;
     huf_node_t** leaves;
     huf_node_t* root;
 } huf_ctx_t;
@@ -42,3 +43,4 @@ void huf_free(huf_ctx_t* hctx);
 
 
 #endif //HUFFMAN_H
+
