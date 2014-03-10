@@ -13,7 +13,14 @@
 
 #define BUF_SIZE 65536
 
+
+typedef struct {
+    char* encoding;
+    int length;
+} huf_decode_t;
+
 typedef struct huf_node_t {
+    int16_t index;
     struct huf_node_t* parent;
     struct huf_node_t* left;
     struct huf_node_t* right;

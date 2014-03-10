@@ -1,6 +1,6 @@
 .PHONY: all, clean, debug
 
-CFLAGS = -Wall -Werror
+CFLAGS = -Wall -Werror -g
 SPATH = src/
 CC = gcc
 
