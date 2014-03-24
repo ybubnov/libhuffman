@@ -147,6 +147,7 @@ int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
 
 void huf_free_tree(huf_node_t* node)
 {
+    printf("%d\n", node->index);
     if (node->left) {
         huf_free_tree(node->left);
         free(node->left);
@@ -198,32 +199,50 @@ int huf_serialize_tree(huf_node_t* tree, int16_t** dest) {
 }
 
 
-int huf_deserialize_tree(huf_node_t* node, uint16_t* src) {
+int huf_deserialize_tree(huf_node_t** node, int16_t** src) {
 /*
- *    int16_t n_index = *src;
+ *    int16_t n_index = **src;
+ *    huf_node_t* node_shadow = *node;
+ *
+ *    printf("INDEX = %d \n", n_index);
+ *    [>printf("! %p %p\n", node_shadow->left, node_shadow->right);<]
  *
  *    if (n_index != 0) {
- *        if (n_index > 0) {
- *            if ((node->right = (huf_node_t*)calloc(1, sizeof(huf_node_t*))) == 0) {
- *                return -1;
- *            }
+ *        node_shadow->index = n_index;
+ *        printf("IND = %d \n", n_index);
  *
- *            if (huf_deserialize_tree(node->right, src++) != 0) {
+ *        if (n_index > 0) {
+ *            if ((node_shadow->right = (huf_node_t*)calloc(1, sizeof(huf_node_t*))) == 0) {
  *                return -1;
  *            }
  *        } else {
- *            if ((node->left = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
- *                return -1;
- *            }
- *
- *            if (huf_deserialize_tree(node->left, src++) != 0) {
+ *            if ((node_shadow->left = (huf_node_t*)calloc(1, sizeof(huf_node_t*))) == 0) {
  *                return -1;
  *            }
  *        }
  *
- *        node->index = n_index;
+ *        (*src)++;
+ *        if (huf_deserialize_tree(&(node_shadow->left), src) != 0) {
+ *            return -1;
+ *        }
+ *
+ *        (*src)++;
+ *        if (huf_deserialize_tree(&(node_shadow->right), src) != 0) {
+ *            return -1;
+ *        }
+ *
+ *        printf("%p %p\n", node_shadow->left, node_shadow->right);
+ *
+ *        (*src)++;
+ *        if (huf_deserialize_tree(node, src) != 0) {
+ *            return -1;
+ *        }
+ *    } else {
+ *        [>(*src)++;<]
+ *        [>*node = 0;<]
  *    }
  */
+
 
     return 0;
 }
@@ -328,6 +347,17 @@ int huf_decode(huf_ctx_t* hctx)
 
     hctx->root->index = -1;
     int len = huf_serialize_tree(hctx->root, &tree_shadow);
+
+
+
+    printf("DESERIALIZE\n\n");
+    huf_node_t* tree = calloc(1, sizeof(huf_node_t));
+    int16_t* ptr = tree_head + 1;
+    huf_deserialize_tree(&tree, &ptr);
+
+    /*huf_free_tree(tree);*/
+
+    free(tree);
 
     printf("\nLENGTH = %d\n", len);
     printf("\n");
