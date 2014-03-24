@@ -199,49 +199,46 @@ int huf_serialize_tree(huf_node_t* tree, int16_t** dest) {
 }
 
 
-int huf_deserialize_tree(huf_node_t** node, int16_t** src) {
-/*
- *    int16_t n_index = **src;
- *    huf_node_t* node_shadow = *node;
- *
- *    printf("INDEX = %d \n", n_index);
- *    [>printf("! %p %p\n", node_shadow->left, node_shadow->right);<]
- *
- *    if (n_index != 0) {
- *        node_shadow->index = n_index;
- *        printf("IND = %d \n", n_index);
- *
- *        if (n_index > 0) {
- *            if ((node_shadow->right = (huf_node_t*)calloc(1, sizeof(huf_node_t*))) == 0) {
- *                return -1;
- *            }
- *        } else {
- *            if ((node_shadow->left = (huf_node_t*)calloc(1, sizeof(huf_node_t*))) == 0) {
- *                return -1;
- *            }
- *        }
- *
- *        (*src)++;
- *        if (huf_deserialize_tree(&(node_shadow->left), src) != 0) {
- *            return -1;
- *        }
- *
- *        (*src)++;
- *        if (huf_deserialize_tree(&(node_shadow->right), src) != 0) {
- *            return -1;
- *        }
- *
- *        printf("%p %p\n", node_shadow->left, node_shadow->right);
- *
- *        (*src)++;
- *        if (huf_deserialize_tree(node, src) != 0) {
- *            return -1;
- *        }
- *    } else {
- *        [>(*src)++;<]
- *        [>*node = 0;<]
- *    }
- */
+int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end) {
+    int16_t n_index = **src;
+    huf_node_t* node_shadow;
+
+    /*printf("INDEX = %d \n", n_index);*/
+
+    if (n_index != 0) {
+        if (n_index > 0) {
+            if ((node->right = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                return -1;
+            }
+
+            node->right->index = n_index;
+            node_shadow = node->right;
+        } else {
+            if ((node->left = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                return -1;
+            }
+
+            node->left->index = n_index;
+            node_shadow = node->left;
+        }
+
+        (*src)++;
+        /*printf("LEFT ");*/
+        if (*src < src_end && huf_deserialize_tree(node_shadow, src, src_end) != 0) {
+            return -1;
+        }
+
+        (*src)++;
+        /*printf("RIGHT %p %p", *src, src_end);*/
+        if (*src < src_end && huf_deserialize_tree(node_shadow, src, src_end) != 0) {
+            return -1;
+        }
+
+        (*src)++;
+        if (*src < src_end && huf_deserialize_tree(node, src, src_end) != 0) {
+            return -1;
+        }
+    }
 
 
     return 0;
@@ -350,12 +347,14 @@ int huf_decode(huf_ctx_t* hctx)
 
 
 
-    printf("DESERIALIZE\n\n");
+    printf("\n\nDESERIALIZE\n\n");
     huf_node_t* tree = calloc(1, sizeof(huf_node_t));
     int16_t* ptr = tree_head + 1;
-    huf_deserialize_tree(&tree, &ptr);
+    huf_deserialize_tree(tree, &ptr, tree_head + len);
 
-    /*huf_free_tree(tree);*/
+    printf("\nDESERIALIZED\n\n");
+
+    huf_free_tree(tree);
 
     free(tree);
 

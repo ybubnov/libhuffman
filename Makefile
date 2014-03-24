@@ -15,7 +15,7 @@ maind: $(SPATH)main.c huffmand.o
 	$(CC) -g $(CFLAGS) $^ -o $@
 
 main: $(SPATH)main.c $(SPATH)huffman.o
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) -g $(CFLAGS) $^ -o $@
 
 huffman.o: $(SPATH)huffman.c
 	$(CC) $(CFLAGS) -c $< -o $@
