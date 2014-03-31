@@ -216,9 +216,14 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
 
 int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end) 
 {
-    int16_t n_index = **src;
+    int16_t n_index;
     huf_node_t* node_shadow;
 
+    if (++(*src) > src_end) {
+        return 0;
+    }
+
+    n_index = **src;
     printf("INDEX = %d \n", n_index);
 
     if (n_index != 0) {
@@ -238,26 +243,14 @@ int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end)
             node_shadow = node->left;
         }
 
-        if (++(*src) < src_end && huf_deserialize_tree(node_shadow, src, src_end) != 0) {
+        if (huf_deserialize_tree(node_shadow, src, src_end) != 0) {
             return -1;
         }
 
-        if (++(*src) < src_end && huf_deserialize_tree(node_shadow, src, src_end) != 0) {
+        if (huf_deserialize_tree(node_shadow, src, src_end) != 0) {
             return -1;
         }
-
-       /// There is an unsolved problem 
-/*
- *        if (!node_shadow->left && !node_shadow->right) {
- *            return 0;
- *        }
- *
- *        if (++(*src) < src_end && huf_deserialize_tree(node, src, src_end) != 0) {
- *            return -1;
- *        }
- */
     }
-
 
     return 0;
 }
@@ -479,8 +472,9 @@ int huf_encode(huf_ctx_t* hctx)
         return -1;
     }
 
-    tree_shadow = tree_head + 1;
+    tree_shadow = tree_head;
     root->index = -1;
+    huf_deserialize_tree(root, &tree_shadow, tree_head + tree_length);
     huf_deserialize_tree(root, &tree_shadow, tree_head + tree_length);
 
     hctx->root = root;
