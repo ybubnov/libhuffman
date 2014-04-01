@@ -231,7 +231,6 @@ int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end)
     }
 
     n_index = **src;
-    printf("INDEX = %d %p %p\n", n_index, node->left, node->left);
 
     if (n_index != 0) {
         if (n_index > 0) {
@@ -249,6 +248,8 @@ int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end)
             node->left->index = n_index;
             node_shadow = node->left;
         }
+
+        printf("INDEX = %d %p %p\n", n_index, node->left, node->left);
 
         if (huf_deserialize_tree(node_shadow, src, src_end) != 0) {
             return -1;
@@ -355,7 +356,7 @@ int huf_decode(huf_ctx_t* hctx)
     uint64_t obtained, total = 0;
 
     // write serialized tree to file
-    int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*512);
+    int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
 
     huf_mktree(hctx);
@@ -370,6 +371,7 @@ int huf_decode(huf_ctx_t* hctx)
     memcpy(huf_write_buffer + sizeof(hctx->length) + sizeof(len), 
             tree_head, len * sizeof(*tree_head));
 
+    printf("OUTPUT LENGTH %lld\n", (long long)hctx->length);
     lseek(hctx->ifd, 0, SEEK_SET);
 
     do {
@@ -482,6 +484,7 @@ int huf_encode(huf_ctx_t* hctx)
     tree_shadow = tree_head;
     root->index = -1;
     huf_deserialize_tree(root, &tree_shadow, tree_head + tree_length);
+    printf("=====================================================\n");
     huf_deserialize_tree(root, &tree_shadow, tree_head + tree_length);
 
     hctx->root = root;

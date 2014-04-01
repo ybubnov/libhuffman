@@ -2,18 +2,19 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <time.h>
 
 int main(int argc, char** argv)
 {
     int ifd, ofd;
-    struct stat st;
+    struct stat64 st;
     char ifl_name[256] = "/home/kubrick/test/file.txt";
     char ofl_name[256] = "/home/kubrick/test/out.txt";
     char efl_name[256] = "/home/kubrick/test/file_encoded.txt";
     huf_ctx_t hctx;
     
-    stat(ifl_name, &st);
+    stat64(ifl_name, &st);
 
     if ((ifd = open(ifl_name, O_LARGEFILE | O_RDONLY)) < 0) {
         return -1;
@@ -33,9 +34,7 @@ int main(int argc, char** argv)
     close(ifd);
     close(ofd);
 
-
-
-    stat(ofl_name, &st);
+    stat64(ofl_name, &st);
 
     if ((ifd = open(ofl_name, O_LARGEFILE | O_RDONLY)) < 0) {
         return -1;
@@ -59,4 +58,5 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
 
