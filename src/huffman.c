@@ -48,11 +48,12 @@ int huf_mktree(huf_ctx_t* hctx)
         return -1;
     } 
 
-    for (i = start; i < 512; i++) {
+
+    while (start < 512) {
         index1 = index2 = -1;
         rate1 = rate2 = 0;
 
-        for (j = i; j < node; j++) {
+        for (j = start; j < node; j++) {
             rate = rates[j];
 
             if (rate) {
@@ -74,10 +75,12 @@ int huf_mktree(huf_ctx_t* hctx)
             }
         }
 
+        
         /*
          *printf("rate1:  %5lld\t%5d\trate2:  %5lld\t%5d\n", 
          *        (long long)rate1, index1, (long long)rate2, index2);
          */
+        
 
         if (index1 == -1 || index2 == -1) {
             hctx->root = shadow_tree[node - 1];
@@ -121,6 +124,10 @@ int huf_mktree(huf_ctx_t* hctx)
         rates[index1] = 0;
         rates[index2] = 0;
         node++;
+
+        while(!rates[start]) {
+            start++;
+        }
     }
 
 
@@ -224,7 +231,7 @@ int huf_deserialize_tree(huf_node_t* node, int16_t** src, int16_t* src_end)
     }
 
     n_index = **src;
-    printf("INDEX = %d \n", n_index);
+    printf("INDEX = %d %p %p\n", n_index, node->left, node->left);
 
     if (n_index != 0) {
         if (n_index > 0) {
@@ -422,7 +429,7 @@ int huf_encode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
                 huf_write_buffer[huf_write_pos] = abs(huf_last_node->index);
                 huf_write_pos++;
 
-                /*printf("\nLETTER: %d\n", huf_last_node->index);*/
+                /*printf("LETTER: %d\n", huf_last_node->index);*/
                 huf_last_node = hctx->root;
             }
         }
@@ -478,10 +485,6 @@ int huf_encode(huf_ctx_t* hctx)
     huf_deserialize_tree(root, &tree_shadow, tree_head + tree_length);
 
     hctx->root = root;
-
-    printf("FREEE\n");
-    huf_free_tree(root);
-    return -1;
 
     huf_write_pos = 0; 
     huf_last_node = 0;
