@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#define LEAF 1111
+
+
 uint8_t huf_write_buffer[BUF_SIZE];
 uint32_t huf_write_pos = 0;
 uint8_t huf_bit_buffer = 0;
@@ -155,19 +158,19 @@ int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
 
 void huf_free_tree(huf_node_t* node)
 {
-    printf("%d\n", node->index);
+    printf("%d ", node->index);
     if (node->left) {
         huf_free_tree(node->left);
         free(node->left);
     } else {
-        printf("0\n");
+        printf("0 ");
     }
     
     if (node->right) {
         huf_free_tree(node->right);
         free(node->right);
     } else {
-        printf("0\n");
+        printf("0 ");
     }
 
 }
@@ -205,6 +208,7 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
         **dest = tree->index;
         printf("%d ", **dest);
 
+
         (*dest)++;
         int l_len = huf_serialize_tree(tree->left, dest);
 
@@ -215,7 +219,7 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
     } else {
         printf("0 ");
 
-        **dest = 0;
+        **dest = LEAF;
         return 1;
     } 
 }
@@ -227,16 +231,20 @@ int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
     huf_node_t** node_left;
     huf_node_t** node_right;
 
-    if ((*src) + 1 > src_end) {
-        return 0;
-    }
+    /*
+     *if ((*src) + 1 > src_end) {
+     *    printf("Exceeded\n");
+     *    return 0;
+     *}
+     */
 
     n_index = **src;
     (*src)++;
-    printf("INDEX = %d\n", n_index);
+    printf("%d ", n_index);
 
-    if (n_index != 0) {
+    if (n_index != LEAF) {
         if (((*node) = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+            printf("Allocation Error.\n");
             return -1;
         }
 
@@ -355,7 +363,7 @@ int huf_decode(huf_ctx_t* hctx)
     huf_mktree(hctx);
     huf_create_table(hctx);
 
-    hctx->root->index = -1;
+    hctx->root->index = -1024;
     int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
 
     huf_write_pos = sizeof(hctx->length) + sizeof(len) + len * sizeof(*tree_head);
@@ -471,11 +479,8 @@ int huf_encode(huf_ctx_t* hctx)
 
     tree_shadow = tree_head;
     huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length);
-    /*tree_shadow++;*/
-    /*huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length);*/
 
     hctx->root = root;
-
     huf_write_pos = 0; 
     huf_last_node = 0;
 
