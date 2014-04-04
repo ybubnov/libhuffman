@@ -17,7 +17,7 @@
 typedef struct {
     char* encoding;
     int length;
-} huf_decode_t;
+} huf_encode_t;
 
 typedef struct huf_node_t {
     int16_t index;
@@ -31,14 +31,14 @@ typedef struct {
     int ifd;
     int ofd;
     uint64_t length;
-    huf_decode_t* table;
+    huf_encode_t* table;
     huf_node_t** leaves;
     huf_node_t* root;
 } huf_ctx_t;
 
 int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx);
-int huf_decode(huf_ctx_t* hctx);
 int huf_encode(huf_ctx_t* hctx);
+int huf_decode(huf_ctx_t* hctx);
 void huf_free(huf_ctx_t* hctx);
 
 

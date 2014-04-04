@@ -1,6 +1,6 @@
 .PHONY: all, clean, debug
 
-CFLAGS = -Wall -g
+CFLAGS = -Wall -O2
 SPATH = src/
 CC = gcc
 
@@ -12,16 +12,16 @@ clean:
 	rm -rf $(SPATH)huffman.o huffmand.o main maind
 
 maind: $(SPATH)main.c huffmand.o
-	$(CC) -g $(CFLAGS) $^ -o $@
+	$(CC) $^ -o $@
 
 main: $(SPATH)main.c $(SPATH)huffman.o
-	$(CC) -g $(CFLAGS) $^ -o $@
+	$(CC) $^ -o $@
 
 huffman.o: $(SPATH)huffman.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -c $< -o $@
 
 huffmand.o: $(SPATH)huffman.c
-	$(CC) $(CFLAGS) -c -g $< -o $@
+	$(CC) -c -g $< -o $@
 
 huffman.c: $(SPATH)huffman.h
 

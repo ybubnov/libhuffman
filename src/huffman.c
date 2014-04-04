@@ -1,11 +1,11 @@
 #include "huffman.h"
+#include "error.h"
 
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 
 #define LEAF 1111
-
 
 uint8_t huf_write_buffer[BUF_SIZE];
 uint32_t huf_write_pos = 0;
@@ -78,13 +78,6 @@ int huf_mktree(huf_ctx_t* hctx)
             }
         }
 
-        
-        /*
-         *printf("rate1:  %5lld\t%5d\trate2:  %5lld\t%5d\n", 
-         *        (long long)rate1, index1, (long long)rate2, index2);
-         */
-        
-
         if (index1 == -1 || index2 == -1) {
             hctx->root = shadow_tree[node - 1];
             break;
@@ -149,6 +142,7 @@ int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
     hctx->table = 0;
     
     if ((hctx->leaves = (huf_node_t**)calloc(256, sizeof(huf_node_t*))) == 0) {
+        ERROR("Memory allocation error.\n");
         return -1;
     }
 
@@ -158,21 +152,15 @@ int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
 
 void huf_free_tree(huf_node_t* node)
 {
-    printf("%d ", node->index);
     if (node->left) {
         huf_free_tree(node->left);
         free(node->left);
-    } else {
-        printf("0 ");
     }
     
     if (node->right) {
         huf_free_tree(node->right);
         free(node->right);
-    } else {
-        printf("0 ");
     }
-
 }
 
 
@@ -206,8 +194,6 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
 {
     if (tree) {
         **dest = tree->index;
-        printf("%d ", **dest);
-
 
         (*dest)++;
         int l_len = huf_serialize_tree(tree->left, dest);
@@ -217,8 +203,6 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
 
         return l_len + r_len + 1;
     } else {
-        printf("0 ");
-
         **dest = LEAF;
         return 1;
     } 
@@ -227,24 +211,15 @@ int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
 
 int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end) 
 {
-    int16_t n_index;
+    int16_t n_index = **src;
     huf_node_t** node_left;
     huf_node_t** node_right;
 
-    /*
-     *if ((*src) + 1 > src_end) {
-     *    printf("Exceeded\n");
-     *    return 0;
-     *}
-     */
-
-    n_index = **src;
     (*src)++;
-    printf("%d ", n_index);
 
     if (n_index != LEAF) {
         if (((*node) = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-            printf("Allocation Error.\n");
+            ERROR("Allocation Error.\n");
             return -1;
         }
 
@@ -271,7 +246,7 @@ int huf_create_table(huf_ctx_t* hctx)
     char buf[65536];
     huf_node_t* pointer;
 
-    hctx->table = (huf_decode_t*)calloc(256, sizeof(huf_decode_t));
+    hctx->table = (huf_encode_t*)calloc(256, sizeof(huf_encode_t));
 
     for (index = 0; index < 256; index++) {
         pointer = hctx->leaves[index];
@@ -295,7 +270,6 @@ int huf_create_table(huf_ctx_t* hctx)
             hctx->table[index].encoding = (char*)calloc(position + 1, sizeof(char));
             hctx->table[index].length = position;
             memcpy(hctx->table[index].encoding, buf, position);
-            printf("%d: %s %d\n", index, hctx->table[index].encoding, position);
         }
 
     }
@@ -304,7 +278,7 @@ int huf_create_table(huf_ctx_t* hctx)
 }
 
 
-int huf_decode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
+int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
 {
     uint64_t pos;
     int length, index;
@@ -343,20 +317,18 @@ int huf_decode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
 }
 
 
-void huf_decode_flush(huf_ctx_t* hctx)
+int huf_encode_flush(huf_ctx_t* hctx)
 {
-    printf("FLUSHED\n");
     huf_write_buffer[huf_write_pos++] = huf_bit_buffer;
-    write(hctx->ofd, huf_write_buffer, huf_write_pos);
+    return write(hctx->ofd, huf_write_buffer, huf_write_pos);
 }
 
 
-int huf_decode(huf_ctx_t* hctx)
+int huf_encode(huf_ctx_t* hctx)
 {
     uint8_t buf[BUF_SIZE];
     uint64_t obtained, total = 0;
 
-    // write serialized tree to file
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
 
@@ -372,7 +344,6 @@ int huf_decode(huf_ctx_t* hctx)
     memcpy(huf_write_buffer + sizeof(hctx->length) + sizeof(len), 
             tree_head, len * sizeof(*tree_head));
 
-    printf("OUTPUT LENGTH %lld\n", (long long)hctx->length);
     lseek(hctx->ifd, 0, SEEK_SET);
 
     do {
@@ -380,19 +351,19 @@ int huf_decode(huf_ctx_t* hctx)
             break;
         }
 
-        huf_decode_partial(hctx, buf, obtained);
+        huf_encode_partial(hctx, buf, obtained);
 
         total += obtained;
     } while(total < hctx->length);
 
-    huf_decode_flush(hctx);
+    huf_encode_flush(hctx);
 
     free(tree_head);
     return 0;
 }
 
 
-int huf_encode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64_t* written)
+int huf_decode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64_t* written)
 {
     uint64_t pos;
     uint8_t bit_buffer;
@@ -407,14 +378,10 @@ int huf_encode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
     for (pos = 0; pos < len; pos++) {
         bit_buffer = buf[pos];
 
-        /*printf("\nDECODE 0x%X\n", bit_buffer);*/
-    
         for (bit_position = 7; bit_position > 0; bit_position--) {
             if ((bit_buffer >> bit_position) & 1) {
-                /*printf("%p\n", huf_last_node->right);*/
                 huf_last_node = huf_last_node->right;
             } else {
-                /*printf("0");*/
                 huf_last_node = huf_last_node->left;
             }
 
@@ -432,7 +399,6 @@ int huf_encode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
                 huf_write_buffer[huf_write_pos] = abs(huf_last_node->index);
                 huf_write_pos++;
 
-                /*printf("LETTER: %d\n", huf_last_node->index);*/
                 huf_last_node = hctx->root;
             }
         }
@@ -442,14 +408,13 @@ int huf_encode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
 }
 
 
-void huf_encode_flush(huf_ctx_t* hctx, int extra)
+int huf_decode_flush(huf_ctx_t* hctx, int extra)
 {
-    printf("FLUSHED %d\n", extra);
-    write(hctx->ofd, huf_write_buffer, extra);
+    return write(hctx->ofd, huf_write_buffer, extra);
 }
 
 
-int huf_encode(huf_ctx_t* hctx)
+int huf_decode(huf_ctx_t* hctx)
 {
     uint8_t buf[BUF_SIZE];
     uint64_t obtained, total = 0;
@@ -462,8 +427,6 @@ int huf_encode(huf_ctx_t* hctx)
     if ((read(hctx->ifd, &if_length, sizeof(hctx->length))) == -1) {
         return -1;
     }
-
-    printf("INPUT LENGTH = %lld\n", (long long)if_length);
 
     if (read(hctx->ifd, &tree_length, sizeof(tree_length)) == -1) {
         return -1;
@@ -489,14 +452,13 @@ int huf_encode(huf_ctx_t* hctx)
             break;
         }
 
-        /*printf("OBTAINED: %lld\n", (long long)obtained);*/
-        huf_encode_partial(hctx, buf, obtained, &written);
+        huf_decode_partial(hctx, buf, obtained, &written);
 
         if_length -= written;
         total += obtained;
     } while(total < hctx->length);
 
-    huf_encode_flush(hctx, if_length);
+    huf_decode_flush(hctx, if_length);
     free(tree_head);
 
     return 0;
