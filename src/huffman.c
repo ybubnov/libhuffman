@@ -251,7 +251,10 @@ int huf_create_table(huf_ctx_t* hctx)
     char buf[65536];
     huf_node_t* pointer;
 
-    hctx->table = (huf_encode_t*)calloc(256, sizeof(huf_encode_t));
+    if ((hctx->table = (huf_encode_t*)calloc(256, sizeof(huf_encode_t))) == 0) {
+        ERROR("Memory allocation failed.\n");
+        return -1;
+    }
 
     for (index = 0; index < 256; index++) {
         pointer = hctx->leaves[index];
@@ -272,7 +275,11 @@ int huf_create_table(huf_ctx_t* hctx)
         }
 
         if (position) {
-            hctx->table[index].encoding = (char*)calloc(position + 1, sizeof(char));
+            if ((hctx->table[index].encoding = (char*)calloc(position + 1, sizeof(char))) == 0) {
+                ERROR("Memory allocation failed.\n");
+                return -1;
+            }
+
             hctx->table[index].length = position;
             memcpy(hctx->table[index].encoding, buf, position);
         }
@@ -339,8 +346,15 @@ int huf_encode(huf_ctx_t* hctx)
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
 
-    huf_mktree(hctx);
-    huf_create_table(hctx);
+    if (huf_mktree(hctx) != 0) {
+        ERROR("Failed to create huffman tree.\n");
+        return -1;
+    }
+
+    if (huf_create_table(hctx) != 0) {
+        ERROR("Failed to create encoding table.\n");
+        return -1;
+    }
 
     hctx->root->index = -1024;
     int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
@@ -363,7 +377,10 @@ int huf_encode(huf_ctx_t* hctx)
         total += obtained;
     } while(total < hctx->length);
 
-    huf_encode_flush(hctx);
+    if (huf_encode_flush(hctx) == -1) {
+        ERROR("Failed writing buffer to a file.\n");
+        return -1;
+    }
 
     free(tree_head);
     return 0;
@@ -395,7 +412,7 @@ int huf_decode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
             if (!huf_last_node->left && !huf_last_node->right) {
                 if (huf_write_pos >= BUF_SIZE) {
                     if (write(hctx->ofd, huf_write_buffer, BUF_SIZE) == -1) {
-                        ERROR("Failed writing buffer to file.\n");
+                        ERROR("Failed writing buffer to a file.\n");
                         return -1;
                     }
                     
@@ -453,7 +470,10 @@ int huf_decode(huf_ctx_t* hctx)
     }
 
     tree_shadow = tree_head;
-    huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length);
+    if (huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length) != 0) {
+        ERROR("Tree deserialization failed.\n");
+        return -1;
+    }
 
     hctx->root = root;
     huf_write_pos = 0; 
@@ -470,7 +490,11 @@ int huf_decode(huf_ctx_t* hctx)
         total += obtained;
     } while(total < hctx->length);
 
-    huf_decode_flush(hctx, if_length);
+    if (huf_decode_flush(hctx, if_length) == -1) {
+        ERROR("Failed writing buffer to a file.\n");
+        return -1;
+    }
+
     free(tree_head);
 
     return 0;

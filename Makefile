@@ -6,13 +6,8 @@ CC = gcc
 
 all: main
 
-debug: maind
-
 clean:
 	rm -rf $(SPATH)huffman.o huffmand.o main maind
-
-maind: $(SPATH)main.c huffmand.o
-	$(CC) $^ -o $@
 
 main: $(SPATH)main.c $(SPATH)huffman.o
 	$(CC) $^ -o $@
