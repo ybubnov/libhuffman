@@ -372,7 +372,10 @@ int huf_encode(huf_ctx_t* hctx)
             break;
         }
 
-        huf_encode_partial(hctx, buf, obtained);
+        if (huf_encode_partial(hctx, buf, obtained) != 0) {
+            ERROR("Encoding failed.\n");
+            return -1;
+        }
 
         total += obtained;
     } while(total < hctx->length);
@@ -484,7 +487,10 @@ int huf_decode(huf_ctx_t* hctx)
             break;
         }
 
-        huf_decode_partial(hctx, buf, obtained, &written);
+        if (huf_decode_partial(hctx, buf, obtained, &written) != 0) {
+            ERROR("Decoding failed.\n");
+            return -1;
+        }
 
         if_length -= written;
         total += obtained;

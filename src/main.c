@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     }
 
     if (process(&hctx) != 0) {
-        ERROR("File decoding failed.\n");
+        ERROR("File processing failed.\n");
         return -1;
     }
 
