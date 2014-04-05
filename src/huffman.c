@@ -22,6 +22,7 @@ int huf_mktree(huf_ctx_t* hctx)
     uint64_t i, total = 0, obtained = 0;
 
     if ((rates = (int64_t*)calloc(512, sizeof(int64_t))) == 0) {
+        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -48,6 +49,7 @@ int huf_mktree(huf_ctx_t* hctx)
     huf_node_t** shadow_tree;
 
     if ((shadow_tree = (huf_node_t**)calloc(512, sizeof(huf_node_t*))) == 0) {
+        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
         return -1;
     } 
 
@@ -85,17 +87,20 @@ int huf_mktree(huf_ctx_t* hctx)
 
         if (!shadow_tree[index1]) {
             if ((shadow_tree[index1] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
                 return -1;
             }
         }
 
         if (!shadow_tree[index2]) {
             if ((shadow_tree[index2] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+                ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
                 return -1;
             }
         }
 
         if ((shadow_tree[node] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
+            ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
             return -1;
         }
 
@@ -142,7 +147,7 @@ int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
     hctx->table = 0;
     
     if ((hctx->leaves = (huf_node_t**)calloc(256, sizeof(huf_node_t*))) == 0) {
-        ERROR("Memory allocation error.\n");
+        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -219,7 +224,7 @@ int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
 
     if (n_index != LEAF) {
         if (((*node) = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-            ERROR("Allocation Error.\n");
+            ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
             return -1;
         }
 
@@ -285,6 +290,7 @@ int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
     char* encoding;
 
     if (!hctx->table) {
+        ERROR("Unexpected error.\nInvalid encoding table.\n");
         return -1;
     }
 
@@ -299,6 +305,7 @@ int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
             if (!huf_bit_pos) {
                 if (huf_write_pos >= BUF_SIZE) {
                     if (write(hctx->ofd, huf_write_buffer, BUF_SIZE) == -1) {
+                        ERROR("Failed writing buffer to file.\n");
                         return -1;
                     }
 
@@ -388,6 +395,7 @@ int huf_decode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
             if (!huf_last_node->left && !huf_last_node->right) {
                 if (huf_write_pos >= BUF_SIZE) {
                     if (write(hctx->ofd, huf_write_buffer, BUF_SIZE) == -1) {
+                        ERROR("Failed writing buffer to file.\n");
                         return -1;
                     }
                     
@@ -425,18 +433,22 @@ int huf_decode(huf_ctx_t* hctx)
     huf_node_t* root;
 
     if ((read(hctx->ifd, &if_length, sizeof(hctx->length))) == -1) {
+        ERROR("Failed to read source file length.\nBroken file?\n");
         return -1;
     }
 
     if (read(hctx->ifd, &tree_length, sizeof(tree_length)) == -1) {
+        ERROR("Failed to read tree length.\nBroken file?\n");
         return -1;
     }
 
     if ((tree_head = calloc(tree_length, sizeof(*tree_head))) == 0) {
+        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (read(hctx->ifd, tree_head, tree_length * sizeof(*tree_head)) == -1) {
+        ERROR("Failed to read tree.\nBroken file?\n");
         return -1;
     }
 
