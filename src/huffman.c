@@ -220,6 +220,11 @@ int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
     huf_node_t** node_left;
     huf_node_t** node_right;
 
+    if ((*src) + 1 > src_end) {
+        ERROR("Unexpected end of buffer.\n");
+        return -1;
+    }
+
     (*src)++;
 
     if (n_index != LEAF) {
