@@ -44,6 +44,12 @@ int huf_mktree(huf_ctx_t* hctx)
     } while(total < hctx->length);
 
 
+    for (index = 0; index < 256; index++) {
+        if (rates[index]) {
+            printf("%d (%c) => %lld\n", index, index, rates[index]);
+        }
+    }
+
     int64_t rate, rate1, rate2;
     int16_t index1, index2, node = 256;
     huf_node_t** shadow_tree;
@@ -58,6 +64,10 @@ int huf_mktree(huf_ctx_t* hctx)
         index1 = index2 = -1;
         rate1 = rate2 = 0;
 
+        while(!rates[start]) {
+            start++;
+        }
+
         for (j = start; j < node; j++) {
             rate = rates[j];
 
@@ -65,20 +75,26 @@ int huf_mktree(huf_ctx_t* hctx)
                 if (!rate1) {
                     rate1 = rate;
                     index1 = j;
-                } else if (!rate2) {
-                    rate2 = rate;
-                    index2 = j;
                 } else if (rate <= rate1) {
                     rate2 = rate1;
                     rate1 = rate;
                     index2 = index1;
                     index1 = j;
+                } else if (!rate2) {
+                    rate2 = rate;
+                    index2 = j;
                 } else if (rate <= rate2) {
                     rate2 = rate;
                     index2 = j;
                 }
+
+                /*printf("\trate1: %5lld\t%5d\trate2: %5lld\t%5d\tRATE=%lld\n", (long long)rate1, index1, (long long)rate2, index2, (long long)rate);*/
             }
         }
+
+        printf("START = %d (%c) rate1:  %5lld\t%5d\trate2:  %5lld\t%5d\n", start, start, (long long)rate1, index1, (long long)rate2, index2);
+                                            
+
 
         if (index1 == -1 || index2 == -1) {
             hctx->root = shadow_tree[node - 1];
@@ -125,10 +141,6 @@ int huf_mktree(huf_ctx_t* hctx)
         rates[index1] = 0;
         rates[index2] = 0;
         node++;
-
-        while(!rates[start]) {
-            start++;
-        }
     }
 
 
@@ -287,6 +299,7 @@ int huf_create_table(huf_ctx_t* hctx)
 
             hctx->table[index].length = position;
             memcpy(hctx->table[index].encoding, buf, position);
+            printf("%d (%c) => %s, %d\n", index, index, hctx->table[index].encoding, position);
         }
 
     }
@@ -346,7 +359,7 @@ int huf_encode_flush(huf_ctx_t* hctx)
 int huf_encode(huf_ctx_t* hctx)
 {
     uint8_t buf[BUF_SIZE];
-    uint64_t obtained, total = 0;
+    int64_t obtained, total = 0;
 
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
@@ -363,6 +376,8 @@ int huf_encode(huf_ctx_t* hctx)
 
     hctx->root->index = -1024;
     int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
+
+    printf("TREE LENGHT %d\n", len * sizeof(*tree_head));
 
     huf_write_pos = sizeof(hctx->length) + sizeof(len) + len * sizeof(*tree_head);
     memcpy(huf_write_buffer, &hctx->length, sizeof(hctx->length));

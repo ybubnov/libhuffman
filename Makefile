@@ -1,6 +1,6 @@
 .PHONY: all, clean, debug, test
 
-CFLAGS = -Wall -O2
+CFLAGS = -Wall -Werror -O2
 SPATH = src/
 CC = gcc
 
@@ -19,7 +19,7 @@ test: main test.file
 	@md5sum test_uncompressed.file
 
 main: $(SPATH)main.c $(SPATH)huffman.o
-	$(CC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 huffman.o: $(SPATH)huffman.c
 	$(CC) -c $< -o $@
