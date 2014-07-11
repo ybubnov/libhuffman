@@ -1,9 +1,9 @@
 package main
 
 import "huffman"
-
+import "fmt"
 
 func main() {
-    ctx := huffman.NewContext()
-    ctx.Encode()
+    huffman := huffman.New(56)
+    fmt.Println(huffman)
 }
