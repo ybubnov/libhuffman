@@ -7,6 +7,11 @@ import (
     "bytes"
 )
 
+const (
+    BUFFER_SIZE int = 65536
+    LEAF int = 1024
+)
+
 
 type huffmanNode struct {
     index int
@@ -27,7 +32,7 @@ func New(length uint64) *Huffman {
     return &Huffman{length: length, leaves: leaves}
 }
 
-func (self *Huffman) Encode(reader io.Reader) error {
+func (self *Huffman) Encode(reader io.Reader, writer io.Writer) error {
     if err := self.buildEncodingTree(reader); err != nil {
         return err
     }
@@ -36,26 +41,33 @@ func (self *Huffman) Encode(reader io.Reader) error {
         return err
     }
 
+    buffer := make([]byte, 1024)
+    actualLen := self.serializeTree(self.root, buffer)
+    fmt.Printf("SERIALIZED TREE: %v", buffer[:actualLen])
+    writer.Write(buffer[:actualLen])
+
     return nil
 }
 
-func (self *Huffman) Decode(writer io.Writer) error {
+func (self *Huffman) Decode(reader io.Reader, writer io.Writer) error {
     return nil
 }
 
 func (self *Huffman) buildEncodingTree(reader io.Reader) error {
-    rates, obtained, start := make([]uint16, 512), uint64(0), 0
-    bReader := bufio.NewReader(reader)
+    rates, total, start := make([]uint16, 512), uint64(0), 0
+    bReader, buf := bufio.NewReader(reader), make([]byte, BUFFER_SIZE)
 
-    for obtained < self.length {
-        symbol, err := bReader.ReadByte()
-        if err == nil {
-            index := int(symbol)
-            rates[index]++
-            obtained++
+    for total < self.length {
+        if obtained, err := bReader.Read(buf); err == nil {
+            total += uint64(obtained)
+            for _, symbol := range buf[:obtained]{
+                index := int(symbol)
+                rates[index]++
+                obtained++
 
-            if (index < start) {
-                start = index
+                if (index < start) {
+                    start = index
+                }
             }
         } else if err == io.EOF {
             break
@@ -148,7 +160,7 @@ func (self *Huffman) buildEncodingMap() error {
     for position, pointer := range self.leaves {
         for pointer != nil {
             if pointer.parent != nil {
-                if pointer.parent.left == pointer{
+                if pointer.parent.left == pointer {
                     buffer.WriteByte(0)
                 } else if pointer.parent.right == pointer {
                     buffer.WriteByte(1)
@@ -159,13 +171,31 @@ func (self *Huffman) buildEncodingMap() error {
         }
 
         if self.leaves[position] != nil {
-            encoding[position] = buffer.Bytes()
+            bytes := buffer.Bytes()
+            encoding[position] = make([]byte, len(bytes))
+            copy(encoding[position], bytes)
             buffer.Reset()
         }
     }
 
     fmt.Printf("ENCODING: %v\n", encoding)
     self.encoding = &encoding
+    return nil
+}
+
+func (self *Huffman) serializeTree(node *huffmanNode, buffer []byte) int {
+    if (node != nil) {
+        buffer[0], buffer[1] = byte(node.index >> 0x8), byte(node.index & 0xff)
+        leftLen := self.serializeTree(node.left, buffer[2:])
+        rightLen := self.serializeTree(node.right, buffer[leftLen+2:])
+        return leftLen + rightLen + 2
+    }
+
+    buffer[0], buffer[1] = byte(LEAF >> 0x8), byte(LEAF & 0xff)
+    return 2
+}
+
+func (self *Huffman) deserializeTree(reader io.Reader) error {
     return nil
 }
 

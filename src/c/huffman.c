@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define LEAF 1111
+#define LEAF 1024
 
 uint8_t huf_write_buffer[BUF_SIZE];
 uint32_t huf_write_pos = 0;
