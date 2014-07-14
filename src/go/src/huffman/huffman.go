@@ -2,13 +2,14 @@ package huffman
 
 import (
     "io"
+    "os"
     "fmt"
-    "bufio"
     "bytes"
+    "errors"
 )
 
 const (
-    BUFFER_SIZE int = 65536
+    BUFFER_SIZE uint = 65536
     LEAF int = 1024
 )
 
@@ -20,6 +21,13 @@ type huffmanNode struct {
     right *huffmanNode
 }
 
+type bytesBuffer struct {
+    byteBuf []byte
+    bitBuf byte
+    byteBufPos uint
+    bitBufPos uint
+}
+
 type Huffman struct {
     length uint64
     encoding *map[int][]byte
@@ -29,10 +37,10 @@ type Huffman struct {
 
 func New(length uint64) *Huffman {
     leaves := make([]*huffmanNode, 256)
-    return &Huffman{length: length, leaves: leaves}
+    return &Huffman{length: length,leaves: leaves}
 }
 
-func (self *Huffman) Encode(reader io.Reader, writer io.Writer) error {
+func (self *Huffman) Encode(reader io.ReadSeeker, writer io.Writer) error {
     if err := self.buildEncodingTree(reader); err != nil {
         return err
     }
@@ -41,10 +49,28 @@ func (self *Huffman) Encode(reader io.Reader, writer io.Writer) error {
         return err
     }
 
-    buffer := make([]byte, 1024)
+    buffer := make([]byte, 2048)
     actualLen := self.serializeTree(self.root, buffer)
     fmt.Printf("SERIALIZED TREE: %v", buffer[:actualLen])
     writer.Write(buffer[:actualLen])
+
+    reader.Seek(0, os.SEEK_SET)
+    raw, total := make([]byte, BUFFER_SIZE), uint64(0)
+    buf := &bytesBuffer{byteBuf: make([]byte, BUFFER_SIZE),
+                        bitBufPos: 7}
+
+    for total < self.length {
+        if obtained, err := reader.Read(raw); err == nil {
+            total += uint64(obtained)
+            if self.encodePartial(writer, raw[:obtained], buf) != nil {
+                return err
+            }
+        } else if err == io.EOF {
+            break
+        } else {
+            return err
+        }
+    }
 
     return nil
 }
@@ -53,12 +79,48 @@ func (self *Huffman) Decode(reader io.Reader, writer io.Writer) error {
     return nil
 }
 
+func (self *Huffman) encodePartial(writer io.Writer, raw []byte, buf *bytesBuffer) error {
+    if self.encoding == nil {
+        return errors.New("Unexpected error. Invalid encoding table.")
+    }
+
+    for _, symbol := range raw {
+        encoding := (*self.encoding)[int(symbol)]
+
+        for index := range encoding {
+            bit := encoding[len(encoding)-index-1]
+            buf.bitBuf |= (bit & 1) << buf.bitBufPos
+
+            if buf.bitBufPos--; buf.bitBufPos == 0 {
+                buf.byteBuf[buf.byteBufPos] = buf.bitBuf
+
+                if buf.byteBufPos++; buf.byteBufPos == BUFFER_SIZE {
+                    if _, err := writer.Write(buf.byteBuf); err != nil {
+                        return err
+                    }
+
+                    buf.byteBufPos = 0
+                }
+
+                buf.bitBuf = 0
+                buf.bitBufPos = 7
+            }
+        }
+    }
+
+    return nil
+}
+
+func (self *Huffman) decodePartial() error {
+    return nil
+}
+
 func (self *Huffman) buildEncodingTree(reader io.Reader) error {
     rates, total, start := make([]uint16, 512), uint64(0), 0
-    bReader, buf := bufio.NewReader(reader), make([]byte, BUFFER_SIZE)
+    buf := make([]byte, BUFFER_SIZE)
 
     for total < self.length {
-        if obtained, err := bReader.Read(buf); err == nil {
+        if obtained, err := reader.Read(buf); err == nil {
             total += uint64(obtained)
             for _, symbol := range buf[:obtained]{
                 index := int(symbol)
