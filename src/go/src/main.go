@@ -7,24 +7,38 @@ import (
 )
 
 func main() {
-    var iFile, oFile *os.File
-    var err error
-
-    if iFile, err = os.OpenFile(
-                        "/home/kubrick/test/file.txt",
-                        os.O_RDONLY, 0666); err != nil {
+    iFile, err := os.OpenFile(
+                    "/home/kubrick/test/file.txt",
+                    os.O_RDONLY, 0666);
+    if err != nil {
         log.Fatal(err)
     }
 
     defer iFile.Close()
 
-    if oFile, err = os.Create(
-                        "/home/kubrick/test/out.txt"); err != nil {
+
+    oFile, err := os.Create("/home/kubrick/test/out.txt")
+    if err != nil {
         log.Fatal(err)
     }
 
     defer oFile.Close()
 
-    huffman := huffman.New(56)
+    dFile, err := os.Create("/home/kubrick/test/decoded.txt")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer dFile.Close()
+
+    fileInfo, err := iFile.Stat()
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    huffman := huffman.New(fileInfo.Size())
     huffman.Encode(iFile, oFile)
+
+    oFile.Seek(0, os.SEEK_SET)
+    huffman.Decode(oFile, dFile)
 }
+

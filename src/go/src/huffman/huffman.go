@@ -6,11 +6,12 @@ import (
     "fmt"
     "bytes"
     "errors"
+    "encoding/binary"
 )
 
 const (
     BUFFER_SIZE uint = 65536
-    LEAF int = 1024
+    HUFFMAN_TREE_LEAF int16 = 1024
 )
 
 
@@ -21,7 +22,7 @@ type huffmanNode struct {
     right *huffmanNode
 }
 
-type bytesBuffer struct {
+type huffmanBuffer struct{
     byteBuf []byte
     bitBuf byte
     byteBufPos uint
@@ -29,13 +30,13 @@ type bytesBuffer struct {
 }
 
 type Huffman struct {
-    length uint64
+    length int64
     encoding *map[int][]byte
     root *huffmanNode
     leaves []*huffmanNode
 }
 
-func New(length uint64) *Huffman {
+func New(length int64) *Huffman {
     leaves := make([]*huffmanNode, 256)
     return &Huffman{length: length,leaves: leaves}
 }
@@ -49,20 +50,25 @@ func (self *Huffman) Encode(reader io.ReadSeeker, writer io.Writer) error {
         return err
     }
 
-    buffer := make([]byte, 2048)
-    actualLen := self.serializeTree(self.root, buffer)
-    fmt.Printf("SERIALIZED TREE: %v", buffer[:actualLen])
-    writer.Write(buffer[:actualLen])
+    tree := make([]int16, 1024)
+    actualLen := self.serializeTree(self.root, tree)
+    fmt.Printf("SERIALIZED TREE: %v\n", tree[:actualLen])
+    binary.Write(writer, binary.LittleEndian, self.length)
+    binary.Write(writer, binary.LittleEndian, int16(actualLen))
+    binary.Write(writer, binary.LittleEndian, tree[:actualLen])
 
     reader.Seek(0, os.SEEK_SET)
-    raw, total := make([]byte, BUFFER_SIZE), uint64(0)
-    buf := &bytesBuffer{byteBuf: make([]byte, BUFFER_SIZE),
-                        bitBufPos: 7}
+    raw, total := make([]byte, BUFFER_SIZE), int64(0)
+
+    buf := &huffmanBuffer{byteBuf: make([]byte, BUFFER_SIZE),
+                          bitBufPos: 7}
 
     for total < self.length {
         if obtained, err := reader.Read(raw); err == nil {
-            total += uint64(obtained)
-            if self.encodePartial(writer, raw[:obtained], buf) != nil {
+            total += int64(obtained)
+            if err := self.encodePartial(writer,
+                                         raw[:obtained],
+                                         buf); err != nil {
                 return err
             }
         } else if err == io.EOF {
@@ -72,14 +78,33 @@ func (self *Huffman) Encode(reader io.ReadSeeker, writer io.Writer) error {
         }
     }
 
+    if err := self.encodeFlush(writer, buf); err != nil {
+        return err
+    }
+
     return nil
 }
 
 func (self *Huffman) Decode(reader io.Reader, writer io.Writer) error {
-    return nil
+    totalLen, treeLen := int64(0), int16(0)
+
+    binary.Read(reader, binary.LittleEndian, &totalLen)
+    binary.Read(reader, binary.LittleEndian, &treeLen)
+
+    tree := make([]int16, treeLen)
+    binary.Read(reader, binary.LittleEndian, &tree)
+
+    fmt.Printf("TREE: %v\n", tree)
+
+    node, _, err := self.deserializeTree(tree)
+    fmt.Println(node)
+
+    return err
 }
 
-func (self *Huffman) encodePartial(writer io.Writer, raw []byte, buf *bytesBuffer) error {
+func (self *Huffman) encodePartial(writer io.Writer,
+                                   raw []byte,
+                                   buf *huffmanBuffer) error {
     if self.encoding == nil {
         return errors.New("Unexpected error. Invalid encoding table.")
     }
@@ -91,10 +116,8 @@ func (self *Huffman) encodePartial(writer io.Writer, raw []byte, buf *bytesBuffe
             bit := encoding[len(encoding)-index-1]
             buf.bitBuf |= (bit & 1) << buf.bitBufPos
 
-            if buf.bitBufPos--; buf.bitBufPos == 0 {
-                buf.byteBuf[buf.byteBufPos] = buf.bitBuf
-
-                if buf.byteBufPos++; buf.byteBufPos == BUFFER_SIZE {
+            if buf.bitBufPos == 0 {
+                if buf.byteBufPos >= BUFFER_SIZE {
                     if _, err := writer.Write(buf.byteBuf); err != nil {
                         return err
                     }
@@ -102,9 +125,13 @@ func (self *Huffman) encodePartial(writer io.Writer, raw []byte, buf *bytesBuffe
                     buf.byteBufPos = 0
                 }
 
+                buf.byteBuf[buf.byteBufPos] = buf.bitBuf
+                buf.byteBufPos++
                 buf.bitBuf = 0
-                buf.bitBufPos = 7
+                buf.bitBufPos = 8
             }
+
+            buf.bitBufPos--
         }
     }
 
@@ -115,13 +142,27 @@ func (self *Huffman) decodePartial() error {
     return nil
 }
 
+func (self *Huffman) encodeFlush(writer io.Writer, buf *huffmanBuffer) error {
+    if buf.bitBufPos != 7 {
+        buf.byteBuf[buf.byteBufPos] = buf.bitBuf
+        buf.byteBufPos++
+    }
+
+    _, err := writer.Write(buf.byteBuf[:buf.byteBufPos])
+    return err
+}
+
+func (self *Huffman) decodeFlush(writer io.Writer, buf *huffmanBuffer) error {
+    return nil
+}
+
 func (self *Huffman) buildEncodingTree(reader io.Reader) error {
-    rates, total, start := make([]uint16, 512), uint64(0), 0
+    rates, total, start := make([]int64, 512), int64(0), 0
     buf := make([]byte, BUFFER_SIZE)
 
     for total < self.length {
         if obtained, err := reader.Read(buf); err == nil {
-            total += uint64(obtained)
+            total += int64(obtained)
             for _, symbol := range buf[:obtained]{
                 index := int(symbol)
                 rates[index]++
@@ -132,6 +173,7 @@ func (self *Huffman) buildEncodingTree(reader io.Reader) error {
                 }
             }
         } else if err == io.EOF {
+            self.length = total
             break
         } else {
             return err
@@ -139,7 +181,7 @@ func (self *Huffman) buildEncodingTree(reader io.Reader) error {
     }
 
     index1, index2, node := 0, 0, 256
-    var rate1, rate2 uint16
+    var rate1, rate2 int64
     flatTree := make([]*huffmanNode, 512)
 
     for start < 512 {
@@ -159,12 +201,10 @@ func (self *Huffman) buildEncodingTree(reader io.Reader) error {
                 position += start
                 if rate1 == 0 {
                     index1, rate1 = position, rate
-                } else if rate < rate1 {
+                } else if rate <= rate1 {
                     index1, index2 = position, index1
                     rate1, rate2 = rate, rate1
-                } else if rate2 == 0 {
-                    index2, rate2 = position, rate
-                } else if rate < rate2 {
+                } else if rate2 == 0 || rate <= rate2 {
                     index2, rate2 = position, rate
                 }
             }
@@ -198,8 +238,8 @@ func (self *Huffman) buildEncodingTree(reader io.Reader) error {
 
         flatTree[index1].parent = flatTree[node]
         flatTree[index2].parent = flatTree[node]
-        flatTree[node].left = flatTree[index1]
-        flatTree[node].right = flatTree[index2]
+        flatTree[index1].index = -index1
+        flatTree[index2].index = index2
 
         rates[node] = rate1 + rate2
         rates[index1], rates[index2] = 0, 0
@@ -245,19 +285,40 @@ func (self *Huffman) buildEncodingMap() error {
     return nil
 }
 
-func (self *Huffman) serializeTree(node *huffmanNode, buffer []byte) int {
+func (self *Huffman) serializeTree(node *huffmanNode, buffer []int16) int {
     if (node != nil) {
-        buffer[0], buffer[1] = byte(node.index >> 0x8), byte(node.index & 0xff)
-        leftLen := self.serializeTree(node.left, buffer[2:])
-        rightLen := self.serializeTree(node.right, buffer[leftLen+2:])
-        return leftLen + rightLen + 2
+        buffer[0] = int16(node.index)
+        leftLen := self.serializeTree(node.left, buffer[1:])
+        rightLen := self.serializeTree(node.right, buffer[leftLen+1:])
+        return leftLen + rightLen + 1
     }
 
-    buffer[0], buffer[1] = byte(LEAF >> 0x8), byte(LEAF & 0xff)
-    return 2
+    buffer[0] = HUFFMAN_TREE_LEAF
+    return 1
 }
 
-func (self *Huffman) deserializeTree(reader io.Reader) error {
-    return nil
+func (self *Huffman) deserializeTree(buffer []int16) (*huffmanNode,
+                                                      []int16,
+                                                      error) {
+    var err error
+    if len(buffer) < 1 {
+        return nil, nil, errors.New("Unexpected end of buffer")
+    }
+
+    if buffer[0] != HUFFMAN_TREE_LEAF {
+        fmt.Println(buffer[0])
+        node := &huffmanNode{index: int(buffer[0])}
+        if node.left, buffer, err = self.deserializeTree(buffer[1:]); err != nil {
+            return nil, buffer, err
+        }
+
+        if node.right, buffer, err = self.deserializeTree(buffer); err != nil {
+            return nil, buffer, err
+        }
+
+        return node, buffer, nil
+    }
+
+    return nil, buffer[1:], nil
 }
 

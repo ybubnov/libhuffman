@@ -58,7 +58,7 @@ int huf_mktree(huf_ctx_t* hctx)
         index1 = index2 = -1;
         rate1 = rate2 = 0;
 
-        while(!rates[start] && start < 512) {
+        while(!rates[start]) {
             start++;
         }
 
@@ -74,24 +74,14 @@ int huf_mktree(huf_ctx_t* hctx)
                     rate1 = rate;
                     index2 = index1;
                     index1 = j;
-                } else if (!rate2) {
-                    rate2 = rate;
-                    index2 = j;
-                } else if (rate <= rate2) {
+                } else if (!rate2 || rate <= rate2) {
                     rate2 = rate;
                     index2 = j;
                 }
-
-                /*printf("\trate1: %5lld\t%5d\trate2: %5lld\t%5d\tRATE=%lld\n", (long long)rate1, index1, (long long)rate2, index2, (long long)rate);*/
             }
         }
 
-        printf("START = %d rate1:  %5lld\t%5d\trate2:  %5lld\t%5d\n", start, (long long)rate1, index1, (long long)rate2, index2);
-
-
-
         if (index1 == -1 || index2 == -1) {
-            printf("NODE = %d\n", node - 1);
             hctx->root = shadow_tree[node - 1];
             break;
         }
@@ -260,7 +250,7 @@ int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
 int huf_create_table(huf_ctx_t* hctx)
 {
     int index, position;
-    char buf[256];
+    char buf[65536];
     huf_node_t* pointer;
 
     if ((hctx->table = (huf_encode_t*)calloc(256, sizeof(huf_encode_t))) == 0) {
@@ -294,7 +284,6 @@ int huf_create_table(huf_ctx_t* hctx)
 
             hctx->table[index].length = position;
             memcpy(hctx->table[index].encoding, buf, position);
-            printf("%d (%c) => %s, %d\n", index, index, hctx->table[index].encoding, position);
         }
 
     }
@@ -320,7 +309,6 @@ int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
 
         for (index = length; index > 0; index--) {
             huf_bit_buffer |= ((encoding[index - 1] & 1) << huf_bit_pos);
-            huf_bit_pos--;
 
             if (!huf_bit_pos) {
                 if (huf_write_pos >= BUF_SIZE) {
@@ -335,8 +323,10 @@ int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
                 huf_write_buffer[huf_write_pos] = huf_bit_buffer;
                 huf_write_pos++;
                 huf_bit_buffer = 0;
-                huf_bit_pos = 7;
+                huf_bit_pos = 8;
             }
+
+            huf_bit_pos--;
         }
     }
 
@@ -346,7 +336,10 @@ int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
 
 int huf_encode_flush(huf_ctx_t* hctx)
 {
-    huf_write_buffer[huf_write_pos++] = huf_bit_buffer;
+    if (huf_bit_pos != 7) {
+        huf_write_buffer[huf_write_pos++] = huf_bit_buffer;
+    }
+
     return write(hctx->ofd, huf_write_buffer, huf_write_pos);
 }
 
@@ -354,7 +347,7 @@ int huf_encode_flush(huf_ctx_t* hctx)
 int huf_encode(huf_ctx_t* hctx)
 {
     uint8_t buf[BUF_SIZE];
-    uint64_t obtained, total = 0;
+    int64_t obtained, total = 0;
 
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
@@ -369,10 +362,8 @@ int huf_encode(huf_ctx_t* hctx)
         return -1;
     }
 
-    hctx->root->index = -1024;
+    /*hctx->root->index = -1024;*/
     int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
-
-    printf("TREE LENGHT %d\n", len * sizeof(*tree_head));
 
     huf_write_pos = sizeof(hctx->length) + sizeof(len) + len * sizeof(*tree_head);
     memcpy(huf_write_buffer, &hctx->length, sizeof(hctx->length));
@@ -420,8 +411,8 @@ int huf_decode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
     for (pos = 0; pos < len; pos++) {
         bit_buffer = buf[pos];
 
-        for (bit_position = 7; bit_position > 0; bit_position--) {
-            if ((bit_buffer >> bit_position) & 1) {
+        for (bit_position = 8; bit_position > 0; bit_position--) {
+            if ((bit_buffer >> (bit_position - 1)) & 1) {
                 huf_last_node = huf_last_node->right;
             } else {
                 huf_last_node = huf_last_node->left;
