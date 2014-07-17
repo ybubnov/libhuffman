@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 
     ifl_name = argv[2];
     ofl_name = argv[3];
-    
+
     stat64(ifl_name, &st);
 
     if ((ifd = open(ifl_name, O_LARGEFILE | O_RDONLY)) < 0) {
