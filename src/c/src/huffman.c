@@ -118,8 +118,8 @@ int huf_mktree(huf_ctx_t* hctx)
         shadow_tree[node]->left = shadow_tree[index1];
         shadow_tree[node]->right = shadow_tree[index2];
 
-        shadow_tree[index1]->index = -index1;
-        shadow_tree[index2]->index = index2;
+        /*shadow_tree[index1]->index = -index1;*/
+        /*shadow_tree[index2]->index = index2;*/
         shadow_tree[node]->index = node;
 
         rates[node] = rate1 + rate2;
@@ -346,8 +346,8 @@ int huf_encode_flush(huf_ctx_t* hctx)
 
 int huf_encode(huf_ctx_t* hctx)
 {
-    uint8_t buf[BUF_SIZE];
-    int64_t obtained, total = 0;
+    uint8_t buf[BUF_SIZE], total = 0;
+    int64_t obtained;
 
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
@@ -430,9 +430,7 @@ int huf_decode_partial(const huf_ctx_t* hctx, uint8_t* buf, uint64_t len, uint64
                 }
 
                 //put letter into buffer
-                huf_write_buffer[huf_write_pos] = abs(huf_last_node->index);
-                huf_write_pos++;
-
+                huf_write_buffer[huf_write_pos++] = huf_last_node->index;
                 huf_last_node = hctx->root;
             }
         }
