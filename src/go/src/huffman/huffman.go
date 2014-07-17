@@ -3,7 +3,6 @@ package huffman
 import (
     "io"
     "os"
-    "fmt"
     "bytes"
     "errors"
     "encoding/binary"
@@ -43,12 +42,11 @@ func New(length int64) *Huffman {
 }
 
 func (self *Huffman) Encode(reader io.ReadSeeker, writer io.Writer) error {
-    var err error
-    if err = self.buildEncodingTree(reader); err != nil {
+    if err := self.buildEncodingTree(reader); err != nil {
         return err
     }
 
-    if err = self.buildEncodingMap(); err != nil {
+    if err := self.buildEncodingMap(); err != nil {
         return err
     }
 
@@ -59,10 +57,18 @@ func (self *Huffman) Encode(reader io.ReadSeeker, writer io.Writer) error {
         return err
     }
 
-    fmt.Printf("SERIALIZED TREE: %v\n", tree[:actualLen])
-    binary.Write(writer, binary.LittleEndian, self.length)
-    binary.Write(writer, binary.LittleEndian, int16(actualLen))
-    binary.Write(writer, binary.LittleEndian, tree[:actualLen])
+    //fmt.Printf("SERIALIZED TREE: %v\n", tree[:actualLen])
+    if err := binary.Write(writer, binary.LittleEndian, self.length); err != nil {
+        return err
+    }
+
+    if err := binary.Write(writer, binary.LittleEndian, int16(actualLen)); err != nil {
+        return err
+    }
+
+    if err := binary.Write(writer, binary.LittleEndian, tree[:actualLen]); err != nil {
+        return err
+    }
 
     reader.Seek(0, os.SEEK_SET)
     raw, total := make([]byte, BUFFER_SIZE), int64(0)
@@ -108,12 +114,11 @@ func (self *Huffman) Decode(reader io.Reader, writer io.Writer) error {
         return nil
     }
 
-    fmt.Printf("TREE: %v\n", tree)
-    node, err := self.deserializeTree(tree)
-    self.root = node
-
-    if err != nil {
+    //fmt.Printf("TREE: %v\n", tree)
+    if node, err := self.deserializeTree(tree); err != nil {
         return err
+    } else {
+        self.root = node
     }
 
     raw, total := make([]byte, BUFFER_SIZE), int64(0)
@@ -141,13 +146,13 @@ func (self *Huffman) Decode(reader io.Reader, writer io.Writer) error {
         return err
     }
 
-    return err
+    return nil
 }
 
 func (self *Huffman) encodePartial(writer io.Writer,
                                    raw []byte,
                                    buf *huffmanBuffer) (int, error) {
-    var written int
+    written := 0
     if self.encoding == nil {
         return 0, errors.New("Unexpected error. Invalid encoding table.")
     }
@@ -216,7 +221,7 @@ func (self *Huffman) decodePartial(writer io.Writer,
                 }
 
                 buf.byteBuf[buf.byteBufPos] = byte(buf.node.index)
-                fmt.Println(buf.node.index)
+                //fmt.Println(buf.node.index)
                 buf.byteBufPos++
                 buf.node = self.root
             }
@@ -329,8 +334,8 @@ func (self *Huffman) buildEncodingTree(reader io.Reader) error {
         node++
     }
 
-    fmt.Printf("RATES: %v\n", rates)
-    fmt.Printf("HUFFMAN: %v\n", self)
+    //fmt.Printf("RATES: %v\n", rates)
+    //fmt.Printf("HUFFMAN: %v\n", self)
     return nil
 }
 
@@ -359,7 +364,7 @@ func (self *Huffman) buildEncodingMap() error {
         }
     }
 
-    fmt.Printf("ENCODING: %v\n", encoding)
+    //fmt.Printf("ENCODING: %v\n", encoding)
     self.encoding = &encoding
     return nil
 }
