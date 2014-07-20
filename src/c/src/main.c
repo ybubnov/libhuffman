@@ -42,7 +42,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU)) < 0) {
+    if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0) {
         ERROR("Open file %s error.\n\n", ofl_name);
         ERROR("It seems that this file does not exists\n");
         ERROR("or you do not have write permission on this file.\n");

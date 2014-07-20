@@ -27,7 +27,7 @@ int huf_mktree(huf_ctx_t* hctx)
     }
 
     do {
-        if((obtained = read(hctx->ifd, buf, BUF_SIZE)) <= 0) {
+        if ((obtained = read(hctx->ifd, buf, BUF_SIZE)) <= 0) {
             break;
         }
 
@@ -41,7 +41,7 @@ int huf_mktree(huf_ctx_t* hctx)
         }
 
         total += obtained;
-    } while(total < hctx->length);
+    } while (total < hctx->length);
 
 
     int64_t rate, rate1, rate2;
@@ -58,7 +58,7 @@ int huf_mktree(huf_ctx_t* hctx)
         index1 = index2 = -1;
         rate1 = rate2 = 0;
 
-        while(!rates[start]) {
+        while (!rates[start]) {
             start++;
         }
 
@@ -82,7 +82,7 @@ int huf_mktree(huf_ctx_t* hctx)
         }
 
         if (index1 == -1 || index2 == -1) {
-            hctx->root = shadow_tree[node - 1];
+            hctx->root = shadow_tree[node-1];
             break;
         }
 
@@ -118,8 +118,8 @@ int huf_mktree(huf_ctx_t* hctx)
         shadow_tree[node]->left = shadow_tree[index1];
         shadow_tree[node]->right = shadow_tree[index2];
 
-        /*shadow_tree[index1]->index = -index1;*/
-        /*shadow_tree[index2]->index = index2;*/
+        shadow_tree[index1]->index = index1;
+        shadow_tree[index2]->index = index2;
         shadow_tree[node]->index = node;
 
         rates[node] = rate1 + rate2;
@@ -346,8 +346,8 @@ int huf_encode_flush(huf_ctx_t* hctx)
 
 int huf_encode(huf_ctx_t* hctx)
 {
-    uint8_t buf[BUF_SIZE], total = 0;
-    int64_t obtained;
+    uint8_t buf[BUF_SIZE];
+    uint64_t obtained, total = 0;
 
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
@@ -362,7 +362,7 @@ int huf_encode(huf_ctx_t* hctx)
         return -1;
     }
 
-    /*hctx->root->index = -1024;*/
+    hctx->root->index = -1024;
     int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
 
     huf_write_pos = sizeof(hctx->length) + sizeof(len) + len * sizeof(*tree_head);
