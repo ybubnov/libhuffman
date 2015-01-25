@@ -1,8 +1,8 @@
 .PHONY: all, clean, build_path
 
 NAME = hrc
-SRCPATH = ./src
-BUILDPATH = ./build
+SRCPATH = src
+BUILDPATH = build
 CC = go build
 
 all: build_path $(BUILDPATH)/$(NAME)
@@ -13,7 +13,7 @@ clean:
 build_path:
 	@mkdir -p $(BUILDPATH)
 
-$(BUILDPATH)/$(NAME):
+$(BUILDPATH)/$(NAME): $(wildcard $(SRCPATH)/*.go)
 	cd $(SRCPATH); \
 	export GOPATH=$$(dirname $$(pwd)); \
 	$(CC)

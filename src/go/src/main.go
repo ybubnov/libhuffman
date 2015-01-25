@@ -1,58 +1,68 @@
 package main
 
 import (
-    "io"
-    "os"
-    "log"
-    "huffman"
-)
-
-const (
-    HelpString = "Usage: [-c] [-x] ifilename ofilename"
+	"flag"
+	"huffman"
+	"io"
+	"log"
+	"os"
 )
 
 func main() {
-    var process func(*huffman.Huffman, interface{}, interface{}) error
-    var err error
+	var process func(*huffman.Huffman, io.ReadSeeker, io.Writer) error
 
-    if len(os.Args) < 4 {
-        log.Fatal(HelpString)
-    }
+	createFlag := flag.Bool("create", false, "create a new archive")
+	extractFlag := flag.Bool("extract", false, "extract files from an archive")
+	inputFlag := flag.String("input", "", "input file name")
+	outputFlag := flag.String("output", "", "output file name")
 
-    switch os.Args[1] {
-    case "-c":
-        process = func(h *huffman.Huffman, reader, writer interface{}) error {
-            return h.Encode(reader.(io.ReadSeeker), writer.(io.Writer))
-        }
-    case "-x":
-        process = func(h *huffman.Huffman, reader, writer interface{}) error {
-            return h.Decode(reader.(io.Reader), writer.(io.Writer))
-        }
-    default:
-        log.Fatal(HelpString)
-    }
+	flag.Parse()
 
+	switch {
+	case *createFlag:
+		process = func(h *huffman.Huffman, r io.ReadSeeker, w io.Writer) error {
+			return h.Encode(r, w)
+		}
+	case *extractFlag:
+		process = func(h *huffman.Huffman, r io.ReadSeeker, w io.Writer) error {
+			return h.Decode(r, w)
+		}
+	default:
+		flag.Usage()
+		os.Exit(1)
+	}
 
-    var iFile, oFile *os.File
-    if iFile, err = os.OpenFile(os.Args[2], os.O_RDONLY, 0666); err != nil {
-        log.Fatal(err)
-    }
+	if *inputFlag == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
-    defer iFile.Close()
+	if *outputFlag == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
-    if oFile, err = os.Create(os.Args[3]); err != nil {
-        log.Fatal(err)
-    }
+	iFile, err := os.OpenFile(*inputFlag, os.O_RDONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    defer oFile.Close()
+	defer iFile.Close()
 
-    fileInfo, err := iFile.Stat()
-    if err != nil {
-        log.Fatal(err)
-    }
+	oFile, err := os.Create(*outputFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    if err := process(huffman.New(fileInfo.Size()), iFile, oFile); err != nil {
-        log.Fatal(err)
-    }
+	defer oFile.Close()
+
+	fileInfo, err := iFile.Stat()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = process(huffman.New(fileInfo.Size()), iFile, oFile)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
-
