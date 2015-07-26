@@ -5,32 +5,31 @@
 #include <string.h>
 #include <stdio.h>
 
-#define LEAF 1024
 
-uint8_t huf_write_buffer[BUF_SIZE];
-uint32_t huf_write_pos = 0;
-uint8_t huf_bit_buffer = 0;
-uint8_t huf_bit_pos = 7;
-huf_node_t* huf_last_node = 0;
-
-
-int huf_mktree(huf_ctx_t* hctx)
+static huf_error_t
+__huf_create_tree(huf_ctx_t* hctx, int ifd, uint64_t len)
 {
-    int j, index, start = 256;
-    uint8_t buf[BUF_SIZE];
-    int64_t* rates;
+    __HUFFMAN_BEGIN;
+
+    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
+    int64_t* rates; // Frequency histogram array;
+
+    huf_node_t** shadow_tree;
+
+    // Read symblos from file and build frequency histogram.
+    rates = calloc(512, sizeof(int64_t));
+    __HUFFMAN_ASSERT(!rates, HUF_ERROR_MEMORY_ALLOCATION);
+
+    int index, start = 256;
     uint64_t i, total = 0, obtained = 0;
 
-    if ((rates = (int64_t*)calloc(512, sizeof(int64_t))) == 0) {
-        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-        return -1;
-    }
-
     do {
-        if ((obtained = read(hctx->ifd, buf, BUF_SIZE)) <= 0) {
+        obtained = read(ifd, buf, __HUFFMAN_DEFAULT_BUFFER)
+        if (obtained <= 0) {
             break;
         }
 
+        // Calculate frequency of the symbols.
         for (i = 0; i < obtained; i++) {
             index = buf[i];
             rates[index]++;
@@ -41,18 +40,15 @@ int huf_mktree(huf_ctx_t* hctx)
         }
 
         total += obtained;
-    } while (total < hctx->length);
+    } while (total < length);
 
 
+    int j;
     int64_t rate, rate1, rate2;
     int16_t index1, index2, node = 256;
-    huf_node_t** shadow_tree;
 
-    if ((shadow_tree = (huf_node_t**)calloc(512, sizeof(huf_node_t*))) == 0) {
-        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-        return -1;
-    }
-
+    shadow_tree = calloc(512, sizeof(huf_node_t*));
+    __HUFFMAN_ASSERT(!shadow_tree, HUF_ERROR_MEMORY_ALLOCATION);
 
     while (start < 512) {
         index1 = index2 = -1;
@@ -81,29 +77,24 @@ int huf_mktree(huf_ctx_t* hctx)
             }
         }
 
+        // Tree is constructed.
         if (index1 == -1 || index2 == -1) {
             hctx->root = shadow_tree[node-1];
             break;
         }
 
         if (!shadow_tree[index1]) {
-            if ((shadow_tree[index1] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-                ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-                return -1;
-            }
+            shadow_tree[index1] = calloc(1, sizeof(huf_node_t));
+            __HUFFMAN_ASSERT(!shadow_tree[index1], HUF_ERROR_MEMORY_ALLOCATION);
         }
 
         if (!shadow_tree[index2]) {
-            if ((shadow_tree[index2] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-                ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-                return -1;
-            }
+            shadow_tree[index2] = calloc(1, sizeof(huf_node_t));
+            __HUFFMAN_ASSERT(!shadow_tree[index2], HUF_ERROR_MEMORY_ALLOCATION);
         }
 
-        if ((shadow_tree[node] = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-            ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-            return -1;
-        }
+        shadow_tree[node] = calloc(1, sizeof(huf_node_t));
+        __HUFFMAN_ASSERT(!shadow_tree[node], HUF_ERROR_MEMORY_ALLOCATION);
 
         if (index1 < 256) {
             hctx->leaves[index1] = shadow_tree[index1];
@@ -129,44 +120,53 @@ int huf_mktree(huf_ctx_t* hctx)
     }
 
 
-    free(shadow_tree);
-    free(rates);
-    return 0;
-}
+    __HUFFMAN_DESTROY;
 
-
-int huf_init(int ifd, int ofd, uint64_t length, huf_ctx_t* hctx)
-{
-    hctx->ifd = ifd;
-    hctx->ofd = ofd;
-    hctx->length = length;
-    hctx->root = 0;
-    hctx->table = 0;
-
-    if ((hctx->leaves = (huf_node_t**)calloc(256, sizeof(huf_node_t*))) == 0) {
-        ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-        return -1;
+    if (__HUFFMAN_IS_ERROR) {
+        for (j = 0; j < 512; j++) {
+            free(shadow_tree[j]);
+        }
     }
 
-    return 0;
+    free(shadow_tree);
+    free(rates);
+
+    __HUFFMAN_END;
 }
 
 
-void huf_free_tree(huf_node_t* node)
+huf_error_t
+huf_init(huf_ctx_t* hctx, int ifd, int ofd, uint64_t length)
+{
+    __HUFFMAN_BEGIN;
+
+    memset(hctx, 0, sizeof(huf_ctx_t));
+
+    hctx->leaves = calloc(256, sizeof(huf_node_t*));
+    __HUFFMAN_ASSERT_NOT(hctx->leaves, HUF_ERROR_MEMORY_ALLOCATION);
+
+    __HUFFMAN_DESTROY;
+    __HUFFMAN_END;
+}
+
+
+static void
+__huf_free_tree(huf_node_t* node)
 {
     if (node->left) {
-        huf_free_tree(node->left);
+        __huf_free_tree(node->left);
         free(node->left);
     }
 
     if (node->right) {
-        huf_free_tree(node->right);
+        __huf_free_tree(node->right);
         free(node->right);
     }
 }
 
 
-void huf_free(huf_ctx_t* hctx)
+void
+huf_free(huf_ctx_t* hctx)
 {
     int index;
 
@@ -181,7 +181,7 @@ void huf_free(huf_ctx_t* hctx)
     }
 
     if (hctx->root) {
-        huf_free_tree(hctx->root);
+        __huf_free_tree(hctx->root);
     }
 
     if (hctx->root) {
@@ -192,71 +192,83 @@ void huf_free(huf_ctx_t* hctx)
 }
 
 
-int16_t huf_serialize_tree(huf_node_t* tree, int16_t** dest)
+static huf_error_t
+__huf_serialize_tree(huf_node_t* tree, int16_t** dest, int16_t *pos)
 {
+    __HUFFMAN_BEGIN;
+
+    int l_len, r_len;
+
+    __HUFFMAN_ASSERT_NOT(pos, HUF_ERROR_INVALID_ARGUMENT);
+
     if (tree) {
         **dest = tree->index;
 
         (*dest)++;
-        int l_len = huf_serialize_tree(tree->left, dest);
+        __huf_serialize_tree(tree->left, dest, &l_len);
 
         (*dest)++;
-        int r_len = huf_serialize_tree(tree->right, dest);
+        __huf_serialize_tree(tree->right, dest, &r_len);
 
-        return l_len + r_len + 1;
+        *pos = l_len + r_len + 1;
     } else {
-        **dest = LEAF;
-        return 1;
+        **dest = __HUFFMAN_LEAF_FLAG;
+        *pos = 1;
     }
+
+    __HUFFMAN_DESTROY;
+    __HUFFMAN_END;
 }
 
 
-int huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
+static huf_error_t
+__huf_deserialize_tree(huf_node_t** node, int16_t** src, int16_t* src_end)
 {
+    __HUFFMAN_BEGIN;
+
     int16_t n_index = **src;
     huf_node_t** node_left;
     huf_node_t** node_right;
 
+    huf_error_t err = HUF_ERROR_SUCCESS;
+
     if ((*src) + 1 > src_end) {
-        ERROR("Unexpected end of buffer.\n");
-        return -1;
+        __HUFFMAN_RETURN(HUF_INVALID_ARGUMENT);
     }
 
     (*src)++;
 
-    if (n_index != LEAF) {
-        if (((*node) = (huf_node_t*)calloc(1, sizeof(huf_node_t))) == 0) {
-            ERROR("Memory allocation failed. %s %d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    if (n_index != __HUFFMAN_LEAF_FLAG) {
+        (*node) = calloc(1, sizeof(huf_node_t));
+        __HUFFMAN_ASSERT_NOT(*node, HUF_ERROR_MEMORY_ALLOCATION);
 
         (*node)->index = n_index;
         node_left = &((*node)->left);
         node_right = &((*node)->right);
 
-        if (huf_deserialize_tree(node_left, src, src_end) != 0) {
-            return -1;
-        }
+        err = __huf_deserialize_tree(node_left, src, src_end);
+        __HUFFMAN_ASSERT(err, err);
 
-        if (huf_deserialize_tree(node_right, src, src_end) != 0) {
-            return -1;
-        }
+        err = __huf_deserialize_tree(node_right, src, src_end);
+        __HUFFMAN_ASSERT(err, err);
     }
 
-    return 0;
+    __HUFFMAN_DESTROY;
+    __HUFFMAN_END;
 }
 
 
-int huf_create_table(huf_ctx_t* hctx)
+static huf_error_t
+__huf_create_table(huf_ctx_t* hctx)
 {
+    __HUFFMAN_BEGIN;
+
     int index, position;
     char buf[65536];
     huf_node_t* pointer;
 
-    if ((hctx->table = (huf_encode_t*)calloc(256, sizeof(huf_encode_t))) == 0) {
-        ERROR("Memory allocation failed.\n");
-        return -1;
-    }
+    hctx->table = calloc(256, sizeof(huf_table_ctx_t));
+    __HUFFMAN_ASSERT_NOT(hctx->table, HUF_ERROR_MEMORY_ALLOCATION);
 
     for (index = 0; index < 256; index++) {
         pointer = hctx->leaves[index];
@@ -277,10 +289,8 @@ int huf_create_table(huf_ctx_t* hctx)
         }
 
         if (position) {
-            if ((hctx->table[index].encoding = (char*)calloc(position + 1, sizeof(char))) == 0) {
-                ERROR("Memory allocation failed.\n");
-                return -1;
-            }
+            hctx->table[index].encoding = calloc(position + 1, sizeof(char));
+            __HUFFMAN_ASSERT_NOT(hctx->table[index].encoding, HUF_MEMORY_ALLOCATION);
 
             hctx->table[index].length = position;
             memcpy(hctx->table[index].encoding, buf, position);
@@ -288,11 +298,13 @@ int huf_create_table(huf_ctx_t* hctx)
 
     }
 
-    return 0;
+    __HUFFMAN_DESTROY;
+    __HUFFMAN_END;
 }
 
 
-int huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
+static huf_error_t
+huf_encode_partial(huf_ctx_t* hctx, uint8_t* buf, uint64_t len)
 {
     uint64_t pos;
     int length, index;
@@ -352,7 +364,7 @@ int huf_encode(huf_ctx_t* hctx)
     int16_t* tree_shadow = (int16_t*)malloc(sizeof(uint16_t)*1024);
     int16_t* tree_head = tree_shadow;
 
-    if (huf_mktree(hctx) != 0) {
+    if (_huf_mktree(hctx) != 0) {
         ERROR("Failed to create huffman tree.\n");
         return -1;
     }
@@ -363,7 +375,7 @@ int huf_encode(huf_ctx_t* hctx)
     }
 
     hctx->root->index = -1024;
-    int16_t len = huf_serialize_tree(hctx->root, &tree_shadow);
+    int16_t len = __huf_serialize_tree(hctx->root, &tree_shadow);
 
     huf_write_pos = sizeof(hctx->length) + sizeof(len) + len * sizeof(*tree_head);
     memcpy(huf_write_buffer, &hctx->length, sizeof(hctx->length));

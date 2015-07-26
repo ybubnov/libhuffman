@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (huf_init(ifd, ofd, st.st_size, &hctx) != 0) {
+    if (huf_init(&hctx, ifd, ofd, st.st_size, ) != 0) {
         return -1;
     }
 
@@ -65,5 +65,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
-
