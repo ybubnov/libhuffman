@@ -13,10 +13,11 @@
 /* Default buffer size for write operations.
  */
 #define __HUFFMAN_DEFAULT_BUFFER 65536
+#define __HUFFMAN_ASCII_SYMBOLS 256
 
 /* All leafs of the huffman tree will be marked with that value.
  */
-#define __HUFFMAN_LEAF_FLAG 1024
+#define __HUFFMAN_LEAF 1024
 
 
 typedef struct __huf_node {
@@ -42,8 +43,8 @@ typedef struct __huf_context {
     huf_node_t **leaves;
     huf_node_t *root;
     huf_node_t *last_node;
-    huf_write_ctx_t write_ctx;
     huf_table_cxt_t *table;
+    huf_write_ctx_t wctx;
 } huf_ctx_t;
 
 

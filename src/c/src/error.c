@@ -5,12 +5,13 @@ __huf_error_map[] = {
     "",
     "Failed to allocate memory.",
     "Invalid argument.",
+    "Failed on read/write operation.",
     "Fatal failure.",
     "Unknown failure."
 };
 
 static int
-__huf_error_map_len = 4;
+__huf_error_map_len = 5;
 
 
 const char*
