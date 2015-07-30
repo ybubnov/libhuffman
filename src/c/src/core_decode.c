@@ -18,8 +18,10 @@ __huf_decode_partial(const huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf
 
     huf_write_ctx_t wctx;
 
-    __ASSERT__(!hctx, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT__(!args, HUF_ERROR_INVALID_ARGUMENT);
+    __ASSERT_NULL__(hctx, HUF_ERROR_INVALID_ARGUMENT);
+    __ASSERT_NULL__(args, HUF_ERROR_INVALID_ARGUMENT);
+    __ASSERT_NULL__(buf, HUF_ERROR_INVALID_ARGUMENT);
+    __ASSERT_NULL__(written, HUF_ERROR_INVALID_ARGUMENT);
 
     blk_buf = hctx->wctx.blk_buf;
     blk_pos = hctx->wctx.blk_pos;
@@ -79,8 +81,8 @@ __huf_decode_flush(const huf_ctx_t *hctx, const huf_args_t *args, int extra)
 
     int err;
 
-    __ASSERT__(!hctx, HUF_INVALID_ARUGMENT);
-    __ASSERT__(!args, HUF_INVALID_ARUGMENT);
+    __ASSERT_NULL__(hctx, HUF_INVALID_ARUGMENT);
+    __ASSERT_NULL__(args, HUF_INVALID_ARUGMENT);
 
     err = write(args->ofd, hctx->blk_buf, extra);
     __ASSERT__(err == -1, HUF_ERROR_READ_WRITE);

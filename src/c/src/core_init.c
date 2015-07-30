@@ -6,15 +6,15 @@
 huf_error_t
 huf_init(huf_ctx_t* hctx, int ifd, int ofd, uint64_t length)
 {
-    __TRY__;
+    __try__;
+
+    __assert_not_nil__(hctx, HUF_INVALID_ARGUMENT);
 
     memset(hctx, 0, sizeof(huf_ctx_t));
 
     hctx->leaves = calloc(256, sizeof(huf_node_t*));
-    if (!hctx->leaves) {
-        __RAISE__(HUF_ERROR_MEMORY_ALLOCATION);
-    }
+    __assert_nil__(hctx->leaves, HUF_ERROR_MEMORY_ALLOCATION);
 
-    __FINALLY__;
-    __END__;
+    __finally__;
+    __end__;
 }
