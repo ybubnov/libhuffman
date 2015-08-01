@@ -1,12 +1,14 @@
-#include "rt.h"
+#include <unistd.h>
+
 #include "core.h"
 #include "internal.h"
+#include "runtime.h"
 
 
 static huf_error_t
-__huf_decode_partial(const huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf, uint64_t len, uint64_t *written)
+__huf_decode_partial(huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf, uint64_t len, uint64_t *written)
 {
-    __TRY__;
+    __try__;
 
     uint64_t pos;
     int err;
@@ -16,12 +18,10 @@ __huf_decode_partial(const huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf
     uint8_t bit_pos;
     uint32_t blk_pos;
 
-    huf_write_ctx_t wctx;
-
-    __ASSERT_NULL__(hctx, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT_NULL__(args, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT_NULL__(buf, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT_NULL__(written, HUF_ERROR_INVALID_ARGUMENT);
+    __argument__(hctx);
+    __argument__(args);
+    __argument__(buf);
+    __argument__(written);
 
     blk_buf = hctx->wctx.blk_buf;
     blk_pos = hctx->wctx.blk_pos;
@@ -48,8 +48,8 @@ __huf_decode_partial(const huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf
             }
 
             if (blk_pos >= __HUFFMAN_DEFAULT_BUFFER) {
-                err = write(args->ofd, blk_buf, __HUFFMAN_DEFAULT_BUFFER);
-                __ASSERT_TRUE__(err == -1, HUF_ERROR_READ_WRITE);
+                err = huf_write(args->ofd, blk_buf, __HUFFMAN_DEFAULT_BUFFER);
+                __assert__(err);
 
                 *written += __HUFFMAN_DEFAULT_BUFFER;
                 blk_pos = 0;
@@ -63,43 +63,43 @@ __huf_decode_partial(const huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf
         }
     }
 
-    __FINALLY__;
+    __finally__;
 
     hctx->wctx.blk_buf = blk_buf;
     hctx->wctx.blk_pos = blk_pos;
     hctx->wctx.bit_buf = bit_buf;
     hctx->wctx.bit_pos = bit_pos;
 
-    __END__;
+    __end__;
 }
 
 
 static huf_error_t
 __huf_decode_flush(const huf_ctx_t *hctx, const huf_args_t *args, int extra)
 {
-    __TRY__;
+    __try__;
 
-    int err;
+    huf_error_t err;
 
-    __ASSERT_NULL__(hctx, HUF_INVALID_ARUGMENT);
-    __ASSERT_NULL__(args, HUF_INVALID_ARUGMENT);
+    __argument__(hctx);
+    __argument__(args);
 
-    err = write(args->ofd, hctx->blk_buf, extra);
-    __ASSERT__(err == -1, HUF_ERROR_READ_WRITE);
+    err = huf_write(args->ofd, hctx->wctx.blk_buf, extra);
+    __assert__(err);
 
-    __FINALLY__;
-    __END__;
+    __finally__;
+    __end__;
 }
 
 
 static huf_error_t
 __huf_deserialize_tree(huf_node_t **node, int16_t **src, int16_t *src_end)
 {
-    __TRY__;
+    __try__;
 
-    __ASSERT__(!node, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT__(!src, HUF_ERROR_INVALID_ARGUMENT);
-    __ASSERT__(!src_end, HUF_ERROR_INVALID_ARGUMENT);
+    __argument__(node);
+    __argument__(src);
+    __argument__(src_end);
 
     int16_t n_index = **src;
     huf_node_t **node_left;
@@ -108,35 +108,36 @@ __huf_deserialize_tree(huf_node_t **node, int16_t **src, int16_t *src_end)
     huf_error_t err;
 
     if ((*src) + 1 > src_end) {
-        __RAISE__(HUF_INVALID_ARGUMENT);
+        __raise__(HUF_ERROR_INVALID_ARGUMENT);
     }
 
     (*src)++;
 
-    if (n_index != __HUFFMAN_LEAF_FLAG) {
-        (*node) = calloc(1, sizeof(huf_node_t));
-        __ASSERT__(!(*node), HUF_ERROR_MEMORY_ALLOCATION);
+    if (n_index != __HUFFMAN_LEAF) {
+        err = huf_alloc((void**) node, sizeof(huf_node_t), 1);
+        __assert__(err);
 
         (*node)->index = n_index;
+
         node_left = &((*node)->left);
         node_right = &((*node)->right);
 
         err = __huf_deserialize_tree(node_left, src, src_end);
-        __ASSERT__(err, err);
+        __assert__(err);
 
         err = __huf_deserialize_tree(node_right, src, src_end);
-        __ASSERT__(err, err);
+        __assert__(err);
     }
 
-    __FINALLY__;
-    __END__;
+    __finally__;
+    __end__;
 }
 
 
 huf_error_t
 huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
 {
-    __TRY__;
+    __try__;
 
     uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
     uint64_t obtained, total = 0;
@@ -149,27 +150,27 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
     huf_error_t err;
     huf_args_t args = {ifd, ofd, len};
 
-    __ASSERT__(!hctx, HUF_ERROR_INVALID_ARGUMENT);
+    __argument__(hctx);
 
-    obtained = read(ifd, &if_length, sizeof(length));
-    __ASSERT__(obtained == -1, HUF_ERROR_READ_WRITE);
+    err = huf_read(ifd, &if_length, sizeof(if_length));
+    __assert__(err);
 
-    obtained = read(ifd, &tree_length, sizeof(tree_length));
-    __ASSERT__(obtained == -1, HUF_ERROR_READ_WRITE);
+    err = huf_read(ifd, &tree_length, sizeof(tree_length));
+    __assert__(err);
 
-    tree_head = calloc(tree_length, sizeof(*tree_head));
-    __ASSERT__(!tree_head, HUF_ERROR_MEMORY_ALLOCATION);
+    err = huf_alloc((void**) &tree_head, sizeof(*tree_head), tree_length);
+    __assert__(err);
 
-    obtained = read(ifd, tree_head, tree_length * sizeof(*tree_head));
-    __ASSERT__(obtained == -1, HUF_ERROR_READ_WRITE);
+    err = huf_read(ifd, tree_head, tree_length * sizeof(*tree_head));
+    __assert__(err);
 
     tree_shadow = tree_head;
     err = __huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length);
-    __ASSERT__(err, err);
+    __assert__(err);
 
     hctx->root = root;
     hctx->last_node= 0;
-    hctx->wctx->blk_pos = 0;
+    hctx->wctx.blk_pos = 0;
 
     do {
         obtained = read(args.ifd, buf, __HUFFMAN_DEFAULT_BUFFER);
@@ -178,18 +179,22 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
         }
 
         err = __huf_decode_partial(hctx, &args, buf, obtained, &written);
-        __ASSERT__(err, err);
+        __assert__(err);
 
         if_length -= written;
         total += obtained;
+
     } while(total < args.len);
 
-    err = __huf_decode_flush(hctx, &args, if_length);
-    __ASSERT__(err, err);
+    if (total < args.len) {
+    }
 
-    __FINALLY__;
+    err = __huf_decode_flush(hctx, &args, if_length);
+    __assert__(err);
+
+    __finally__;
 
     free(tree_head);
 
-    __END__;
+    __end__;
 }

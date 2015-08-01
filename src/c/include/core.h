@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "error.h"
+
 /* Default buffer size for write operations.
  */
 #define __HUFFMAN_DEFAULT_BUFFER 65536
@@ -22,9 +24,9 @@
 
 typedef struct __huf_node {
     int16_t index;
-    struct __huf_node_t* parent;
-    struct __huf_node_t* left;
-    struct __huf_node_t* right;
+    struct __huf_node* parent;
+    struct __huf_node* left;
+    struct __huf_node* right;
 } huf_node_t;
 
 typedef struct __huf_table_ctx {
@@ -33,7 +35,7 @@ typedef struct __huf_table_ctx {
 } huf_table_ctx_t;
 
 typedef struct __huf_write_ctx {
-    uint8_t blk_buf[__HUFFMAN_DEFAULT_BUFFER];
+    uint8_t *blk_buf;
     uint8_t bit_buf;
     uint8_t bit_pos;
     uint32_t blk_pos;
@@ -43,8 +45,9 @@ typedef struct __huf_context {
     huf_node_t **leaves;
     huf_node_t *root;
     huf_node_t *last_node;
-    huf_table_cxt_t *table;
+    huf_table_ctx_t *table;
     huf_write_ctx_t wctx;
+    // huf_read_writer_t read_writer;
 } huf_ctx_t;
 
 
@@ -61,7 +64,7 @@ huf_error_t huf_encode(huf_ctx_t *hctx, int ifd, int ofd, uint64_t len);
 /* Function huf_decode decompress data of the specified length from the
  * ifd file desciptor and writes it into the ofd file descriptor.
  */
-huf_error_t huf_decode(huf_ctx_t *hctx, int *ifd, int *dfd, uint64_t len);
+huf_error_t huf_decode(huf_ctx_t *hctx, int ifd, int ofd, uint64_t len);
 
 /* Function huf_free releases allocated memory
  */

@@ -1,4 +1,5 @@
-#include "rt.h"
+#include "runtime.h"
+#include "internal.h"
 #include "error.h"
 #include "core.h"
 
@@ -8,12 +9,14 @@ huf_init(huf_ctx_t* hctx, int ifd, int ofd, uint64_t length)
 {
     __try__;
 
-    __assert_not_nil__(hctx, HUF_INVALID_ARGUMENT);
+    huf_error_r err;
+
+    __argument__(hctx);
 
     memset(hctx, 0, sizeof(huf_ctx_t));
 
-    hctx->leaves = calloc(256, sizeof(huf_node_t*));
-    __assert_nil__(hctx->leaves, HUF_ERROR_MEMORY_ALLOCATION);
+    err = huf_alloc(&hctx->leaves, sizeof(huf_node_t*), 256);
+    __assert__(err);
 
     __finally__;
     __end__;

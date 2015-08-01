@@ -17,27 +17,27 @@ __huf_free_tree(huf_node_t* node)
 
 
 void
-huf_free(huf_ctx_t* hctx)
+huf_free(huf_ctx_t* self)
 {
     int index;
 
-    if (hctx->table) {
+    if (self->table) {
         for (index = 0; index < 256; index++) {
-            free(hctx->table[index].encoding);
+            free(self->table[index].encoding);
         }
     }
 
-    if (hctx->table) {
-        free(hctx->table);
+    if (self->table) {
+        free(self->table);
     }
 
-    if (hctx->root) {
-        __huf_free_tree(hctx->root);
+    if (self->root) {
+        __huf_free_tree(self->root);
     }
 
-    if (hctx->root) {
-        free(hctx->root);
+    if (self->root) {
+        free(self->root);
     }
 
-    free(hctx->leaves);
+    free(self->leaves);
 }

@@ -1,11 +1,12 @@
-#include "huffman.h"
-#include "error.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
+
+
+#include "include/huffman.h"
+
 
 int main(int argc, char** argv)
 {
@@ -17,7 +18,7 @@ int main(int argc, char** argv)
     int (*process)(huf_ctx_t*);
 
     if (argc < 4) {
-        ERROR("Usage: [-c] [-x] ifilename ofilename\n");
+        fprintf(stderr, "Usage: [-c] [-x] ifilename ofilename\n");
         return -1;
     }
 
@@ -26,7 +27,7 @@ int main(int argc, char** argv)
     } else if (!strcmp(argv[1], "-x")) {
         process = huf_decode;
     } else {
-        ERROR("Usage: [-c] [-x] ifilename ofilename\n");
+        fprintf(stderr, "Usage: [-c] [-x] ifilename ofilename\n");
         return -1;
     }
 
@@ -36,16 +37,16 @@ int main(int argc, char** argv)
     stat64(ifl_name, &st);
 
     if ((ifd = open(ifl_name, O_LARGEFILE | O_RDONLY)) < 0) {
-        ERROR("Open file %s error.\n\n", ifl_name);
-        ERROR("It seems that this file does not exists\n");
-        ERROR("or you do not have permission to read it.\n");
+        fprintf(stderr, "Open file %s error.\n\n", ifl_name);
+        fprintf(stderr, "It seems that this file does not exists\n");
+        fprintf(stderr, "or you do not have permission to read it.\n");
         return -1;
     }
 
     if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0) {
-        ERROR("Open file %s error.\n\n", ofl_name);
-        ERROR("It seems that this file does not exists\n");
-        ERROR("or you do not have write permission on this file.\n");
+        fprintf(stderr, "Open file %s error.\n\n", ofl_name);
+        fprintf(stderr, "It seems that this file does not exists\n");
+        fprintf(stderr, "or you do not have write permission on this file.\n");
         return -1;
     }
 
@@ -54,7 +55,7 @@ int main(int argc, char** argv)
     }
 
     if (process(&hctx) != 0) {
-        ERROR("File processing failed.\n");
+        fprintf(stderr, "File processing failed.\n");
         return -1;
     }
 
