@@ -1,4 +1,5 @@
-#include "error.c"
+#include "error.h"
+
 
 static const char*
 __huf_error_map[] = {

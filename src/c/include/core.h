@@ -1,16 +1,10 @@
 #ifndef HUFFMAN_H
 #define HUFFMAN_H
 
-#define _LARGEFILE64_SOURCE
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#include <stdlib.h>
 #include <stdint.h>
 
 #include "error.h"
+
 
 /* Default buffer size for write operations.
  */

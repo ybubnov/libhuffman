@@ -1,4 +1,6 @@
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "runtime.h"
 #include "core.h"
@@ -28,7 +30,7 @@ __huf_create_tree(huf_ctx_t *self, const huf_args_t *args)
     uint64_t i, total = 0, obtained = 0;
 
     do {
-        obtained = read(args->ifd, buf, __HUFFMAN_DEFAULT_BUFFER)
+        obtained = read(args->ifd, buf, __HUFFMAN_DEFAULT_BUFFER);
         if (obtained <= 0) {
             break;
         }
@@ -44,16 +46,16 @@ __huf_create_tree(huf_ctx_t *self, const huf_args_t *args)
         }
 
         total += obtained;
-    } while (total < length);
+    } while (total < args->len);
 
-    if (total < length) {
+    if (total < args->len) {
         __raise__(HUF_ERROR_READ_WRITE);
     }
 
 
     int j;
     int64_t rate, rate1, rate2;
-    int16_t index1, index2, node = __HUFFMAN_ASCII_SYBOLS;
+    int16_t index1, index2, node = __HUFFMAN_ASCII_SYMBOLS;
 
     err = huf_alloc((void**) &shadow_tree, sizeof(huf_node_t*), 512);
     __assert__(err);
@@ -104,7 +106,7 @@ __huf_create_tree(huf_ctx_t *self, const huf_args_t *args)
         err = huf_alloc((void**) &shadow_tree[node], sizeof(huf_node_t), 1);
         __assert__(err);
 
-        if (index1 < __HUFFMAN_ASCII_SYMBLOS) {
+        if (index1 < __HUFFMAN_ASCII_SYMBOLS) {
             self->leaves[index1] = shadow_tree[index1];
         }
 
@@ -196,7 +198,7 @@ __huf_serialize_tree(huf_node_t* tree, int16_t** dest, int16_t *pos)
 {
     __try__;
 
-    int l_len, r_len;
+    int16_t l_len, r_len;
     huf_error_t err;
 
     __argument__(pos);
@@ -232,18 +234,17 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
     int length, index, err;
     char *encoding;
 
-    uint8_t *blk_buf;
-    uint32_t blk_pos;
-    uint8_t bit_buf;
-    uint8_t bit_pos;
+    uint8_t *blk_buf = 0;
+    uint32_t blk_pos = 0;
+    uint8_t bit_buf = 0;
+    uint8_t bit_pos = 0;
 
     huf_table_ctx_t leaf;
 
     __argument__(self);
     __argument__(self->table);
-    __argument__(self->wctx);
+    // __argument__(self->wctx);
 
-    table = self->table;
     blk_buf = self->wctx.blk_buf;
     blk_pos = self->wctx.blk_pos;
     bit_buf = self->wctx.bit_buf;
@@ -264,7 +265,7 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
             }
 
             if (blk_pos >= __HUFFMAN_DEFAULT_BUFFER) {
-                err = huf_write(args->ofd, blk_buf, __HUFMMAN_DEFAULT_BUFFER);
+                err = huf_write(args->ofd, blk_buf, __HUFFMAN_DEFAULT_BUFFER);
                 __assert__(err);
 
                 blk_pos = 0;
@@ -290,7 +291,7 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
 
 
 static huf_error_t
-__huf_encode_flush(huf_ctx_t *self, const huf_args_ctx_t *actx)
+__huf_encode_flush(huf_ctx_t *self, const huf_args_t *actx)
 {
     __try__;
 
@@ -298,7 +299,7 @@ __huf_encode_flush(huf_ctx_t *self, const huf_args_ctx_t *actx)
     huf_error_t err;
 
     __argument__(self);
-    __argument__(self->wctx);
+    // __argument__(self->wctx);
 
     wctx = &(self->wctx);
 
@@ -324,9 +325,11 @@ huf_encode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
     uint64_t obtained, total = 0;
 
     int16_t* tree_shadow;
-    int16_t* tree_head;
+    int16_t* tree_head = 0;
+    int16_t length;
 
     huf_error_t err;
+    huf_args_t args = {ifd, ofd, len};
 
     __argument__(self);
 
@@ -335,7 +338,7 @@ huf_encode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
 
     tree_head = tree_shadow;
 
-    err = __huf_create_tree(self);
+    err = __huf_create_tree(self, &args);
     __assert__(err);
 
     err = __huf_create_table(self);
@@ -343,31 +346,31 @@ huf_encode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
 
     self->root->index = -1024;
 
-    err = __huf_serialize_tree(self->root, &tree_shadow, &len);
+    err = __huf_serialize_tree(self->root, &tree_shadow, &length);
     __assert__(err);
 
-    self->wctx->blk_pos = sizeof(self->length) + sizeof(len) + len * sizeof(*tree_head);
+    self->wctx.blk_pos = sizeof(len) + sizeof(length) + length * sizeof(*tree_head);
 
-    memcpy(huf_write_buffer, &self->length, sizeof(self->length));
-    memcpy(huf_write_buffer + sizeof(self->length), &len, sizeof(len));
-    memcpy(huf_write_buffer + sizeof(self->length) + sizeof(len),
-            tree_head, len * sizeof(*tree_head));
+    memcpy(self->wctx.blk_buf, &len, sizeof(len));
+    memcpy(self->wctx.blk_buf+ sizeof(len), &length, sizeof(length));
+    memcpy(self->wctx.blk_buf+ sizeof(len) + sizeof(length),
+            tree_head, length * sizeof(*tree_head));
 
-    lseek(self->ifd, 0, SEEK_SET);
+    lseek(ifd, 0, SEEK_SET);
 
     do {
-        obtained = read(self->ifd, buf, BUF_SIZE);
+        obtained = read(ifd, buf, __HUFFMAN_DEFAULT_BUFFER);
         if (obtained <= 0) {
             break;
         }
 
-        err = huf_encode_partial(self, buf, obtained);
+        err = __huf_encode_partial(self, &args, buf, obtained);
         __assert__(err);
 
         total += obtained;
-    } while (total < self->length);
+    } while (total < len);
 
-    err = __huf_encode_flush(self);
+    err = __huf_encode_flush(self, &args);
     __assert__(err);
 
     __finally__;

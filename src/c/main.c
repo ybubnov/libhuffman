@@ -1,11 +1,16 @@
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+
+#define __USE_LARGEFILE64
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
+
+#include <fcntl.h>
+#include <sys/types.h>
 #include <sys/stat.h>
-#include <time.h>
+#include <unistd.h>
 
-
-#include "include/huffman.h"
+#include "core.h"
 
 
 int main(int argc, char** argv)
@@ -15,10 +20,10 @@ int main(int argc, char** argv)
     struct stat64 st;
 
     char *ifl_name, *ofl_name;
-    int (*process)(huf_ctx_t*);
+    huf_error_t (*process)(huf_ctx_t*, int, int, uint64_t);
 
     if (argc < 4) {
-        fprintf(stderr, "Usage: [-c] [-x] ifilename ofilename\n");
+        fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
         return -1;
     }
 
@@ -27,7 +32,7 @@ int main(int argc, char** argv)
     } else if (!strcmp(argv[1], "-x")) {
         process = huf_decode;
     } else {
-        fprintf(stderr, "Usage: [-c] [-x] ifilename ofilename\n");
+        fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
         return -1;
     }
 
@@ -50,11 +55,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (huf_init(&hctx, ifd, ofd, st.st_size, ) != 0) {
+    if (huf_init(&hctx) != 0) {
         return -1;
     }
 
-    if (process(&hctx) != 0) {
+    if (process(&hctx, ifd, ofd, st.st_size) != 0) {
         fprintf(stderr, "File processing failed.\n");
         return -1;
     }

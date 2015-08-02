@@ -1,6 +1,10 @@
 #ifndef INTERNAL_H
 #define INTERNAL_H
 
+#include <stdint.h>
+
+#include "error.h"
+
 
 typedef struct __huf_args {
     int ifd;
