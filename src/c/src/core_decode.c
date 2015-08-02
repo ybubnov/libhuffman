@@ -7,85 +7,85 @@
 
 
 static huf_error_t
-__huf_decode_partial(huf_ctx_t *hctx, const huf_args_t *args, uint8_t *buf, uint64_t len, uint64_t *written)
+__huf_decode_partial(huf_ctx_t *self, const huf_args_t *args, uint8_t *buf, uint64_t len, uint64_t *written)
 {
     __try__;
 
     uint64_t pos;
     int err;
 
-    uint8_t *blk_buf;
-    uint8_t bit_buf;
-    uint8_t bit_pos;
-    uint32_t blk_pos;
+    uint8_t *byte_rwbuf;
+    uint8_t bit_rwbuf;
+    uint8_t bit_offset;
+    uint32_t byte_offset;
 
-    __argument__(hctx);
+    __argument__(self);
     __argument__(args);
     __argument__(buf);
     __argument__(written);
 
-    blk_buf = hctx->wctx.blk_buf;
-    blk_pos = hctx->wctx.blk_pos;
-    bit_buf = hctx->wctx.bit_buf;
-    bit_pos = hctx->wctx.bit_pos;
+    byte_rwbuf = self->read_writer.byte_rwbuf;
+    byte_offset = self->read_writer.byte_offset;
+    bit_rwbuf = self->read_writer.bit_rwbuf;
+    bit_offset = self->read_writer.bit_offset;
     *written = 0;
 
-    if (hctx->last_node == 0) {
-        hctx->last_node = hctx->root;
+    if (self->last_node == 0) {
+        self->last_node = self->root;
     }
 
     for (pos = 0; pos < len; pos++) {
-        bit_buf = buf[pos];
+        bit_rwbuf = buf[pos];
 
-        for (bit_pos = 8; bit_pos > 0; bit_pos--) {
-            if ((bit_buf >> (bit_pos - 1)) & 1) {
-                hctx->last_node = hctx->last_node->right;
+        for (bit_offset = 8; bit_offset > 0; bit_offset--) {
+            if ((bit_rwbuf >> (bit_offset - 1)) & 1) {
+                self->last_node = self->last_node->right;
             } else {
-                hctx->last_node = hctx->last_node->left;
+                self->last_node = self->last_node->left;
             }
 
-            if (hctx->last_node->left || hctx->last_node->right) {
+            if (self->last_node->left || self->last_node->right) {
                 continue;
             }
 
-            if (blk_pos >= __HUFFMAN_DEFAULT_BUFFER) {
-                err = huf_write(args->ofd, blk_buf, __HUFFMAN_DEFAULT_BUFFER);
+            if (byte_offset >= __HUFFMAN_DEFAULT_BUFFER) {
+                err = huf_write(args->ofd, byte_rwbuf, __HUFFMAN_DEFAULT_BUFFER);
                 __assert__(err);
 
                 *written += __HUFFMAN_DEFAULT_BUFFER;
-                blk_pos = 0;
+                byte_offset = 0;
             }
 
             // put letter into the buffer
-            blk_pos++;
-            blk_buf[blk_pos] = hctx->last_node->index;
+            byte_offset++;
+            byte_rwbuf[byte_offset] = self->last_node->index;
 
-            hctx->last_node = hctx->root;
+            self->last_node = self->root;
         }
     }
 
     __finally__;
 
-    hctx->wctx.blk_buf = blk_buf;
-    hctx->wctx.blk_pos = blk_pos;
-    hctx->wctx.bit_buf = bit_buf;
-    hctx->wctx.bit_pos = bit_pos;
+    self->read_writer.byte_rwbuf = byte_rwbuf;
+    self->read_writer.byte_offset = byte_offset;
+    self->read_writer.bit_rwbuf = bit_rwbuf;
+    self->read_writer.bit_offset = bit_offset;
 
     __end__;
 }
 
 
 static huf_error_t
-__huf_decode_flush(const huf_ctx_t *hctx, const huf_args_t *args, int extra)
+__huf_decode_flush(const huf_ctx_t *self, const huf_args_t *args, int extra)
 {
     __try__;
 
     huf_error_t err;
 
-    __argument__(hctx);
+    __argument__(self);
     __argument__(args);
 
-    err = huf_write(args->ofd, hctx->wctx.blk_buf, extra);
+    err = huf_write(args->ofd, self->read_writer.byte_rwbuf, extra);
     __assert__(err);
 
     __finally__;
@@ -136,7 +136,7 @@ __huf_deserialize_tree(huf_node_t **node, int16_t **src, int16_t *src_end)
 
 
 huf_error_t
-huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
+huf_decode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
 {
     __try__;
 
@@ -151,7 +151,7 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
     huf_error_t err;
     huf_args_t args = {ifd, ofd, len};
 
-    __argument__(hctx);
+    __argument__(self);
 
     err = huf_read(ifd, &if_length, sizeof(if_length));
     __assert__(err);
@@ -169,9 +169,9 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
     err = __huf_deserialize_tree(&root, &tree_shadow, tree_head + tree_length);
     __assert__(err);
 
-    hctx->root = root;
-    hctx->last_node= 0;
-    hctx->wctx.blk_pos = 0;
+    self->root = root;
+    self->last_node= 0;
+    self->read_writer.byte_offset = 0;
 
     do {
         obtained = read(args.ifd, buf, __HUFFMAN_DEFAULT_BUFFER);
@@ -179,7 +179,7 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
             break;
         }
 
-        err = __huf_decode_partial(hctx, &args, buf, obtained, &written);
+        err = __huf_decode_partial(self, &args, buf, obtained, &written);
         __assert__(err);
 
         if_length -= written;
@@ -190,7 +190,7 @@ huf_decode(huf_ctx_t* hctx, int ifd, int ofd, uint64_t len)
     if (total < args.len) {
     }
 
-    err = __huf_decode_flush(hctx, &args, if_length);
+    err = __huf_decode_flush(self, &args, if_length);
     __assert__(err);
 
     __finally__;

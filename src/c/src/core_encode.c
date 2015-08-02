@@ -151,14 +151,14 @@ __huf_create_table(huf_ctx_t *self)
     __try__;
 
     int index, position;
-    char buf[__HUFFMAN_DEFAULT_BUFFER];
+    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
 
     huf_node_t *pointer;
     huf_error_t err;
 
     __argument__(self);
 
-    err = huf_alloc((void**) &self->table, sizeof(huf_table_ctx_t), 256);
+    err = huf_alloc((void**) &self->table, sizeof(huf_char_coding_t), 256);
     __assert__(err);
 
     for (index = 0; index < 256; index++) {
@@ -232,23 +232,23 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
 
     uint64_t pos;
     int length, index, err;
-    char *encoding;
+    uint8_t *encoding;
 
-    uint8_t *blk_buf = 0;
-    uint32_t blk_pos = 0;
-    uint8_t bit_buf = 0;
-    uint8_t bit_pos = 0;
+    uint8_t *byte_rwbuf = 0;
+    uint32_t byte_offset = 0;
+    uint8_t bit_rwbuf = 0;
+    uint8_t bit_offset = 0;
 
-    huf_table_ctx_t leaf;
+    huf_char_coding_t leaf;
 
     __argument__(self);
     __argument__(self->table);
-    // __argument__(self->wctx);
+    // __argument__(self->read_writer);
 
-    blk_buf = self->wctx.blk_buf;
-    blk_pos = self->wctx.blk_pos;
-    bit_buf = self->wctx.bit_buf;
-    bit_pos = self->wctx.bit_pos;
+    byte_rwbuf = self->read_writer.byte_rwbuf;
+    byte_offset = self->read_writer.byte_offset;
+    bit_rwbuf = self->read_writer.bit_rwbuf;
+    bit_offset = self->read_writer.bit_offset;
 
     for (pos = 0; pos < len; pos++) {
         leaf = self->table[buf[pos]];
@@ -257,34 +257,34 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
         length = leaf.length;
 
         for (index = length; index > 0; index--) {
-            bit_buf |= ((encoding[index - 1] & 1) << bit_pos);
+            bit_rwbuf |= ((encoding[index - 1] & 1) << bit_offset);
 
-            if (bit_pos) {
-                bit_pos--;
+            if (bit_offset) {
+                bit_offset--;
                 continue;
             }
 
-            if (blk_pos >= __HUFFMAN_DEFAULT_BUFFER) {
-                err = huf_write(args->ofd, blk_buf, __HUFFMAN_DEFAULT_BUFFER);
+            if (byte_offset >= __HUFFMAN_DEFAULT_BUFFER) {
+                err = huf_write(args->ofd, byte_rwbuf, __HUFFMAN_DEFAULT_BUFFER);
                 __assert__(err);
 
-                blk_pos = 0;
+                byte_offset = 0;
             }
 
-            blk_buf[blk_pos] = bit_buf;
-            blk_pos++;
+            byte_rwbuf[byte_offset] = bit_rwbuf;
+            byte_offset++;
 
-            bit_buf = 0;
-            bit_pos = 7;
+            bit_rwbuf = 0;
+            bit_offset = 7;
         }
     }
 
     __finally__;
 
-    self->wctx.blk_buf = blk_buf;
-    self->wctx.blk_pos = blk_pos;
-    self->wctx.bit_buf = bit_buf;
-    self->wctx.bit_pos = bit_pos;
+    self->read_writer.byte_rwbuf = byte_rwbuf;
+    self->read_writer.byte_offset = byte_offset;
+    self->read_writer.bit_rwbuf = bit_rwbuf;
+    self->read_writer.bit_offset = bit_offset;
 
     __end__;
 }
@@ -295,20 +295,20 @@ __huf_encode_flush(huf_ctx_t *self, const huf_args_t *actx)
 {
     __try__;
 
-    huf_write_ctx_t *wctx;
+    huf_read_writer_t *read_writer;
     huf_error_t err;
 
     __argument__(self);
-    // __argument__(self->wctx);
+    // __argument__(self->read_writer);
 
-    wctx = &(self->wctx);
+    read_writer = &(self->read_writer);
 
-    if (wctx->bit_pos != 7) {
-        wctx->blk_pos++;
-        wctx->blk_buf[wctx->blk_pos] = wctx->bit_buf;
+    if (read_writer->bit_offset != 7) {
+        read_writer->byte_offset++;
+        read_writer->byte_rwbuf[read_writer->byte_offset] = read_writer->bit_rwbuf;
     }
 
-    err = huf_write(actx->ofd, wctx->blk_buf, wctx->blk_pos);
+    err = huf_write(actx->ofd, read_writer->byte_rwbuf, read_writer->byte_offset);
     __assert__(err);
 
     __finally__;
@@ -349,11 +349,11 @@ huf_encode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
     err = __huf_serialize_tree(self->root, &tree_shadow, &length);
     __assert__(err);
 
-    self->wctx.blk_pos = sizeof(len) + sizeof(length) + length * sizeof(*tree_head);
+    self->read_writer.byte_offset = sizeof(len) + sizeof(length) + length * sizeof(*tree_head);
 
-    memcpy(self->wctx.blk_buf, &len, sizeof(len));
-    memcpy(self->wctx.blk_buf+ sizeof(len), &length, sizeof(length));
-    memcpy(self->wctx.blk_buf+ sizeof(len) + sizeof(length),
+    memcpy(self->read_writer.byte_rwbuf, &len, sizeof(len));
+    memcpy(self->read_writer.byte_rwbuf+ sizeof(len), &length, sizeof(length));
+    memcpy(self->read_writer.byte_rwbuf+ sizeof(len) + sizeof(length),
             tree_head, length * sizeof(*tree_head));
 
     lseek(ifd, 0, SEEK_SET);

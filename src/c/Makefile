@@ -28,4 +28,3 @@ $(BUILD)/$(NAME): main.c $(OBJECTS)
 clean:
 	rm -rf $(BUILD)
 	rm -rf $(OBJECTS)
-
