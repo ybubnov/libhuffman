@@ -1,36 +1,30 @@
-.PHONY: all, clean, test, build_path
+.PHONY: all, clean
 
-NAME = hrc
-CFLAGS = -Wall -Werror -O2
-SRCPATH = ./src
-BUILDPATH = ./build
-CC = gcc
+NAME    := hrc
 
-all: build_path $(BUILDPATH)/$(NAME)
+SOURCE  := src
+INCLUDE := include
+BUILD   := build
+
+CFLAGS  := -Wall -Werror -O2 -I$(INCLUDE)
+
+# Object file names
+OBJECTS := $(wildcard $(SOURCE)/*.c)
+OBJECTS := $(subst .c,.o,$(OBJECTS))
+
+CC      := gcc
+
+all: $(BUILD) $(BUILD)/$(NAME)
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+$(BUILD)/%.o: $(SOURCE)/%.c
+	$(CC) -c $< -o $@ $(CFLAGS)
+
+$(BUILD)/$(NAME): main.c $(OBJECTS)
+	$(CC) $^ -o $@ $(CFLAGS)
 
 clean:
-	rm -rf $(BUILDPATH)
-
-test: $(BUILDPATH)/$(NAME) test.file
-	@MSEC_START=$$(( $$(date +%s%N) / 1000000 )); \
-	$(BUILDPATH)/$(NAME) -c test.file test_compressed.file; \
-	$(BUILDPATH)/$(NAME) -x test_compressed.file test_uncompressed.file; \
-	MSEC_END=$$(( $$(date +%s%N) / 1000000 )); \
-	echo "scale=10; ($$MSEC_END - $$MSEC_START) / 1000.0" | bc
-	@md5sum test.file
-	@md5sum test_uncompressed.file
-
-build_path:
-	@mkdir -p $(BUILDPATH)
-
-$(BUILDPATH)/$(NAME): $(SRCPATH)/main.c $(BUILDPATH)/huffman.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-$(BUILDPATH)/huffman.o: $(SRCPATH)/huffman.c
-	$(CC) -c $< -o $@
-
-$(BUILDPATH)/huffmand.o: $(SRCPATH)/huffman.c
-	$(CC) -c -g $< -o $@
-
-huffman.c: $(SRCPATH)/huffman.h
-
+	rm -rf $(BUILD)
+	rm -rf $(OBJECTS)

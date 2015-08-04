@@ -1,22 +1,22 @@
-.PHONY: all, clean, build_path
+.PHONY: all, clean
 
-NAME = hrc
-SRCPATH = src
-BUILDPATH = build
-CC = go build
+NAME    := hrc
 
-all: build_path $(BUILDPATH)/$(NAME)
+GOPATH  := $(shell pwd)
+BUILD   := build
+
+SOURCE  := $(wildcard $(SOURCE)/*.go)
+SOURCE  += $(wildcard $(SOURCE)/huffman/*.go)
+
+CC      := go build
+
+all: $(BUILD) $(BUILD)/$(NAME)
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+$(BUILD)/$(NAME): $(SOURCE)
+	$(CC) -o $@
 
 clean:
-	rm -rf $(BUILDPATH)
-
-build_path:
-	@mkdir -p $(BUILDPATH)
-
-$(BUILDPATH)/$(NAME): $(wildcard $(SRCPATH)/*.go)
-	cd $(SRCPATH); \
-	export GOPATH=$$(dirname $$(pwd)); \
-	$(CC)
-	echo $$(pwd)
-	mv $(SRCPATH)/$(SRCPATH) $@
-
+	rm -rf $(BUILD)
