@@ -1,4 +1,4 @@
-.PHONY: all, clean, test
+.PHONY: all, clean
 
 NAME    := hrc
 
