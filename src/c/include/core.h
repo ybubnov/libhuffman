@@ -39,7 +39,11 @@ typedef struct __huf_context {
     huf_node_t **leaves;
     huf_node_t *root;
     huf_node_t *last_node;
-    huf_char_coding_t *table;
+
+    /* char_coding represents map of binary encoding for
+     * particular ascii symbol.
+     */
+    huf_char_coding_t *char_coding;
 
     /* read_writer groups read and write operations
      */

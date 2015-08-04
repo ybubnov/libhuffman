@@ -23,14 +23,14 @@ huf_free(huf_ctx_t* self)
 {
     int index;
 
-    if (self->table) {
+    if (self->char_coding) {
         for (index = 0; index < 256; index++) {
-            free(self->table[index].encoding);
+            free(self->char_coding[index].encoding);
         }
     }
 
-    if (self->table) {
-        free(self->table);
+    if (self->char_coding) {
+        free(self->char_coding);
     }
 
     if (self->root) {

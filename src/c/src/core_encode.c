@@ -146,7 +146,7 @@ __huf_create_tree(huf_ctx_t *self, const huf_args_t *args)
 
 
 static huf_error_t
-__huf_create_table(huf_ctx_t *self)
+__huf_create_char_coding(huf_ctx_t *self)
 {
     __try__;
 
@@ -158,7 +158,7 @@ __huf_create_table(huf_ctx_t *self)
 
     __argument__(self);
 
-    err = huf_alloc((void**) &self->table, sizeof(huf_char_coding_t), 256);
+    err = huf_alloc((void**) &self->char_coding, sizeof(huf_char_coding_t), 256);
     __assert__(err);
 
     for (index = 0; index < 256; index++) {
@@ -180,11 +180,11 @@ __huf_create_table(huf_ctx_t *self)
         }
 
         if (position) {
-            err = huf_alloc((void**) &(self->table[index].encoding), sizeof(char), 1);
+            err = huf_alloc((void**) &(self->char_coding[index].encoding), sizeof(char), 1);
             __assert__(err);
 
-            self->table[index].length = position;
-            memcpy(self->table[index].encoding, buf, position);
+            self->char_coding[index].length = position;
+            memcpy(self->char_coding[index].encoding, buf, position);
         }
     }
 
@@ -242,7 +242,7 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
     huf_char_coding_t leaf;
 
     __argument__(self);
-    __argument__(self->table);
+    __argument__(self->char_coding);
     // __argument__(self->read_writer);
 
     byte_rwbuf = self->read_writer.byte_rwbuf;
@@ -251,7 +251,7 @@ __huf_encode_partial(huf_ctx_t* self, const huf_args_t *args, uint8_t *buf, uint
     bit_offset = self->read_writer.bit_offset;
 
     for (pos = 0; pos < len; pos++) {
-        leaf = self->table[buf[pos]];
+        leaf = self->char_coding[buf[pos]];
 
         encoding = leaf.encoding;
         length = leaf.length;
@@ -341,7 +341,7 @@ huf_encode(huf_ctx_t* self, int ifd, int ofd, uint64_t len)
     err = __huf_create_tree(self, &args);
     __assert__(err);
 
-    err = __huf_create_table(self);
+    err = __huf_create_char_coding(self);
     __assert__(err);
 
     self->root->index = -1024;
