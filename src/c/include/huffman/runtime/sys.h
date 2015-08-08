@@ -1,5 +1,6 @@
-#ifndef RUNTIME_H
-#define RUNTIME_H
+#ifndef RUNTIME_SYS_H
+#define RUNTIME_SYS_H
+
 
 #define __try__ \
     huf_error_t __error__ = HUF_ERROR_SUCCESS \
@@ -37,12 +38,5 @@
         } \
     } while (0) \
 
-#define __assert_not_nil__(statement, error) \
-    do { \
-        if ((statement) == 0) { \
-            __error__ = (error); \
-            goto cleanup; \
-        } \
-    } while (0) \
 
-#endif // RUNTIME_H
+#endif // RUNTIME_SYS_H

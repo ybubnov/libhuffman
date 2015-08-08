@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-#include "error.h"
+#include <huffman/errors.h>
+#include <huffman/bufio/io.h>
+#include <huffman/bufio/bufio.h>
 
 
 /* Default buffer size for write operations.
@@ -23,19 +25,14 @@ typedef struct __huf_node {
     struct __huf_node* right;
 } huf_node_t;
 
+
 typedef struct __huf_char_coding {
     int length;
     uint8_t* encoding;
 } huf_char_coding_t;
 
-typedef struct __huf_read_writer {
-    uint8_t *byte_rwbuf;
-    uint32_t byte_offset;
-    uint8_t bit_rwbuf;
-    uint8_t bit_offset;
-} huf_read_writer_t;
 
-typedef struct __huf_context {
+typedef struct __huf_archiver {
     huf_node_t **leaves;
     huf_node_t *root;
     huf_node_t *last_node;
@@ -47,28 +44,34 @@ typedef struct __huf_context {
 
     /* read_writer groups read and write operations
      */
-    huf_read_writer_t read_writer;
-} huf_ctx_t;
+    huf_bufio_read_writer_t bufio_read_writer;
+} huf_archiver_t;
 
 
 /* Function huf_init creates a new context for huffman compressor.
  * Created instance should be deleted with huf_free.
  */
-huf_error_t huf_init(huf_ctx_t* self);
+huf_error_t
+huf_init(huf_archiver_t **self);
+
+
+/* Function huf_free releases allocated memory
+ */
+huf_error_t
+huf_free(huf_archiver_t **self);
+
 
 /* Function huf_encode compress data of specifiled length from the
  * ifd file descriptot and writes it into the ofd file descriptor.
  */
-huf_error_t huf_encode(huf_ctx_t *self, int ifd, int ofd, uint64_t len);
+huf_error_t
+huf_encode(huf_archiver_t *self, huf_reader_t reader, huf_writer_t writer, uint64_t len);
 
 /* Function huf_decode decompress data of the specified length from the
  * ifd file desciptor and writes it into the ofd file descriptor.
  */
-huf_error_t huf_decode(huf_ctx_t *self, int ifd, int ofd, uint64_t len);
-
-/* Function huf_free releases allocated memory
- */
-void huf_free(huf_ctx_t *self);
+huf_error_t
+huf_decode(huf_archiver_t *self, huf_reader_t reader, huf_writer_t writer, uint64_t len);
 
 
-#endif //HUFFMAN_H
+#endif // HUFFMAN_H

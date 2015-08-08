@@ -1,4 +1,4 @@
-#include "error.h"
+#include <huffman/errors.h>
 
 
 static const char*
