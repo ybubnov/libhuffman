@@ -1,5 +1,5 @@
-#ifndef RUNTIME_SYS_H
-#define RUNTIME_SYS_H
+#ifndef INCLUDE_huffman_sys_h__
+#define INCLUDE_huffman_sys_h__
 
 
 #define __try__ \
@@ -39,4 +39,4 @@
     } while (0) \
 
 
-#endif // RUNTIME_SYS_H
+#endif // INCLUDE_huffman_sys_h__

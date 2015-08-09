@@ -1,9 +1,8 @@
-#ifndef BUFIO_IO_H
-#define BUFIO_IO_H
+#ifndef INCLUDE_huffman_io_h__
+#define INCLUDE_huffman_io_h__
 
-#include <stdint.h>
-
-#include <huffman/errors.h>
+#include "huffman/common.h"
+#include "huffman/errors.h"
 
 
 /* huf_writer_t is writer abstraction.
@@ -35,4 +34,4 @@ huf_error_t
 huf_read(huf_reader_t reader, void *buf, size_t *count);
 
 
-#endif // BUFIO_IO_H
+#endif // INCLUDE_huffman_io_h__

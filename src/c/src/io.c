@@ -1,8 +1,8 @@
 #include <unistd.h>
 
-#include <huffman/bufio/io.h>
-#include <huffman/errors.h>
-#include <huffman/runtime/sys.h>
+#include "huffman/errors.h"
+#include "huffman/io.h"
+#include "huffman/sys.h"
 
 
 huf_error_t

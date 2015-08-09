@@ -2,13 +2,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <huffman/huffman.h>
-#include <huffman/runtime/malloc.h>
-#include <huffman/runtime/sys.h>
+#include "huffman/archiver.h"
+#include "huffman/malloc.h"
+#include "huffman/sys.h"
 
 
 static huf_error_t
-__huf_create_tree(huf_archiver_t *self, const huf_read_writer_t *read_writer)
+__huf_create_tree(huf_encoder_t *self, const huf_read_writer_t *read_writer)
 {
     __try__;
 
@@ -246,7 +246,7 @@ __huf_encode_partial(huf_archiver_t* self, const huf_read_writer_t *read_writer,
 
     __argument__(self);
     __argument__(self->char_coding);
-    // __argument__(self->bufio_read_writer);
+    __argument__(read_writer);
 
     byte_rwbuf = self->bufio_read_writer.byte_rwbuf;
     byte_offset = self->bufio_read_writer.byte_offset;
@@ -320,25 +320,83 @@ __huf_encode_flush(huf_archiver_t *self, const huf_read_writer_t *read_writer)
 
 
 huf_error_t
-huf_encode(huf_archiver_t* self, huf_reader_t reader, huf_writer_t writer, uint64_t len)
+huf_encoder_init(huf_encoder_t **self, huf_read_writer_t *read_writer)
 {
     __try__;
 
-    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
+    huf_error_t err;
+    huf_encoder_t *self_ptr;
 
-    int16_t* tree_shadow;
-    int16_t* tree_head = 0;
-    int16_t length;
+    __argument__(self);
+    __argument__(read_writer);
+
+    err = huf_malloc((void**) self, sizeof(huf_encoder_t), 1);
+    __assert__(err);
+
+    self_ptr = *self;
+
+    // Allocate memory for Huffman tree.
+    err = huf_tree_init(&self_ptr->huffman_tree);
+    __assert__(err);
+
+    // Create buffered read-writer instance with 64KiB buffer.
+    err = huf_bufio_read_writer_init(&self_ptr->bufio_read_writer, read_writer, __HUFFMAN_DEFAULT_BUFFER);
+    __assert__(err);
+
+    __finally__;
+    __end__;
+}
+
+
+huf_error_t
+huf_encoder_free(huf_encoder_t **self)
+{
+    __try__;
 
     huf_error_t err;
-    huf_read_writer_t read_writer = {reader, writer, len};
+    huf_decoder_t *self_ptr;
 
     __argument__(self);
 
-    err = huf_malloc((void**) &tree_shadow, sizeof(uint16_t), 1024);
+    self_ptr = self;
+
+    err = huf_tree_free(&self_ptr->huffman_tree);
     __assert__(err);
 
-    tree_head = tree_shadow;
+    err = huf_bufio_read_writer_free(&self_ptr->bufio_read_writer);
+    __assert__(err);
+
+    free(self_ptr);
+
+    *self = NULL;
+
+    __finally__;
+    __end__;
+}
+
+
+huf_error_t
+huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
+{
+    __try__;
+
+    huf_error_t err;
+    huf_read_writer_t read_writer = {reader, writer, len};
+    huf_encoder_t *self = NULL;
+
+    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
+
+    int16_t *tree_head_copy = NULL;
+    int16_t *tree_head = NULL;
+    int16_t length;
+
+    err = huf_encoder_init(&self, &read_writer);
+    __assert__(err);
+
+    err = huf_malloc((void**) &tree_head_copy, sizeof(uint16_t), 1024);
+    __assert__(err);
+
+    tree_head = tree_head_copy;
 
     err = __huf_create_tree(self, &read_writer);
     __assert__(err);
@@ -348,14 +406,14 @@ huf_encode(huf_archiver_t* self, huf_reader_t reader, huf_writer_t writer, uint6
 
     self->root->index = -1024;
 
-    err = __huf_serialize_tree(self->root, &tree_shadow, &length);
+    err = __huf_serialize_tree(self->root, &tree_head_copy, &length);
     __assert__(err);
 
     self->bufio_read_writer.byte_offset = sizeof(len) + sizeof(length) + length * sizeof(*tree_head);
 
     memcpy(self->bufio_read_writer.byte_rwbuf, &len, sizeof(len));
-    memcpy(self->bufio_read_writer.byte_rwbuf+ sizeof(len), &length, sizeof(length));
-    memcpy(self->bufio_read_writer.byte_rwbuf+ sizeof(len) + sizeof(length),
+    memcpy(self->bufio_read_writer.byte_rwbuf + sizeof(len), &length, sizeof(length));
+    memcpy(self->bufio_read_writer.byte_rwbuf + sizeof(len) + sizeof(length),
             tree_head, length * sizeof(*tree_head));
 
     lseek(reader, 0, SEEK_SET);
@@ -384,6 +442,7 @@ huf_encode(huf_archiver_t* self, huf_reader_t reader, huf_writer_t writer, uint6
 
     __finally__;
 
+    huf_encoder_free(&self);
     free(tree_head);
 
     __end__;

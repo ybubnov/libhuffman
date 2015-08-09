@@ -1,8 +1,9 @@
-#ifndef BUFIO_H
-#define BUFIO_H
+#ifndef INCLUDE_huffman_bufio_h__
+#define INCLUDE_huffman_bufio_h__
 
-#include <huffman/errors.h>
-#include <huffman/bufio/io.h>
+#include "huffman/common.h"
+#include "huffman/errors.h"
+#include "huffman/io.h"
 
 
 /* bufio_read_writer represents bit-grained read/writer buffer.
@@ -47,7 +48,11 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self);
 
 
 huf_error_t
-huf_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte);
+huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self, size_t size);
 
 
-#endif // BUFIO_H
+huf_error_t
+huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte);
+
+
+#endif // INCLUDE_huffman_bufio_h__

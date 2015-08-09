@@ -1,12 +1,10 @@
-#include <stdlib.h>
-
-#include <huffman/bufio/bufio.h>
-#include <huffman/runtime/sys.h>
-#include <huffman/runtime/malloc.h>
+#include "huffman/bufio.h"
+#include "huffman/malloc.h"
+#include "huffman/sys.h"
 
 
 huf_error_t
-huf_bufio_reader_init(huf_bufio_read_writer_t **self, huf_read_writer_t *read_writer, size_t size)
+huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *read_writer, size_t size)
 {
     __try__;
 
@@ -53,7 +51,24 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self)
 
 
 huf_error_t
-huf_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
+huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self, size_t size)
+{
+    __try__;
+
+    huf_error_t err;
+
+    __argument__(self);
+
+    err = huf_write(self->read_writer->writer, self->byte_rwbuf, size);
+    __assert__(err);
+
+    __finally__;
+    __end__;
+}
+
+
+huf_error_t
+huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
 {
     __try__;
 

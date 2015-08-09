@@ -1,7 +1,6 @@
-#include <stdlib.h>
-
-#include <huffman/errors.h>
-#include <huffman/runtime/sys.h>
+#include "huffman/common.h"
+#include "huffman/errors.h"
+#include "huffman/sys.h"
 
 
 huf_error_t

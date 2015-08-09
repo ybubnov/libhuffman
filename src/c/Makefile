@@ -7,10 +7,8 @@ BUILD   := build
 INCLUDE := -Iinclude
 INCLUDE += -Iinclude/runtime
 
-SOURCE  := src/errors/*.c
+SOURCE  := src/*.c
 SOURCE  += src/huffman/*.c
-SOURCE  += src/bufio/*.c
-SOURCE  += src/runtime/*.c
 
 CFLAGS  := -Wall -Wpedantic -Werror -O2 $(INCLUDE) -std=c99
 
