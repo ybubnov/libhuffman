@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "huffman/bufio.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
@@ -100,13 +102,13 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 
     huf_error_t err;
 
-    void *buf_ptr;
+    const uint8_t *buf_ptr;
     size_t diff;
 
     __argument__(self);
     __argument__(buf);
 
-    buf_ptr = *buf;
+    buf_ptr = buf;
 
     err = __huf_bufio_read_writer_flush(self);
     __assert__(err);
@@ -119,7 +121,7 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
         memcpy(self->byte_rwbuf + self->byte_offset, buf_ptr, diff);
 
         // Next call could fail, so increase offset of the buffer.
-        self->byte_offset = self-size;
+        self->byte_offset = self->size;
 
         err = huf_write(self->read_writer->writer, self->byte_rwbuf, self->size);
         __assert__(err);

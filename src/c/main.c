@@ -17,9 +17,8 @@ int main(int argc, char **argv)
 {
     huf_reader_t reader;
     huf_writer_t writer;
-    huf_archiver_t *huffman_archiver;
 
-    huf_error_t (*process)(huf_archiver_t*, huf_reader_t, huf_writer_t, uint64_t);
+    huf_error_t (*process)(huf_reader_t, huf_writer_t, uint64_t);
 
     if (argc < 4) {
         fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
@@ -57,16 +56,10 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (huf_init(&huffman_archiver) != 0) {
-        return -1;
-    }
-
-    if (process(huffman_archiver, reader, writer, st.st_size) != 0) {
+    if (process(reader, writer, st.st_size) != 0) {
         fprintf(stderr, "File processing failed.\n");
         return -1;
     }
-
-    huf_free(&huffman_archiver);
 
     close(reader);
     close(writer);

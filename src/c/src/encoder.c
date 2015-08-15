@@ -204,8 +204,6 @@ __huf_encode_partial(huf_encoder_t* self, const huf_read_writer_t *read_writer, 
     int length, index, err;
     uint8_t *encoding;
 
-    uint8_t *byte_rwbuf = 0;
-    uint32_t byte_offset = 0;
     uint8_t bit_rwbuf = 0;
     uint8_t bit_offset = 0;
 
@@ -215,8 +213,6 @@ __huf_encode_partial(huf_encoder_t* self, const huf_read_writer_t *read_writer, 
     __argument__(self->char_coding);
     __argument__(read_writer);
 
-    byte_rwbuf = self->bufio_read_writer->byte_rwbuf;
-    byte_offset = self->bufio_read_writer->byte_offset;
     bit_rwbuf = self->bufio_read_writer->bit_rwbuf;
     bit_offset = self->bufio_read_writer->bit_offset;
 
@@ -234,15 +230,8 @@ __huf_encode_partial(huf_encoder_t* self, const huf_read_writer_t *read_writer, 
                 continue;
             }
 
-            if (byte_offset >= __HUFFMAN_DEFAULT_BUFFER) {
-                err = huf_write(read_writer->writer, byte_rwbuf, __HUFFMAN_DEFAULT_BUFFER);
-                __assert__(err);
-
-                byte_offset = 0;
-            }
-
-            byte_rwbuf[byte_offset] = bit_rwbuf;
-            byte_offset++;
+            err = huf_bufio_write_uint8(self->bufio_read_writer, bit_rwbuf);
+            __assert__(err);
 
             bit_rwbuf = 0;
             bit_offset = 7;
@@ -251,8 +240,6 @@ __huf_encode_partial(huf_encoder_t* self, const huf_read_writer_t *read_writer, 
 
     __finally__;
 
-    self->bufio_read_writer->byte_rwbuf = byte_rwbuf;
-    self->bufio_read_writer->byte_offset = byte_offset;
     self->bufio_read_writer->bit_rwbuf = bit_rwbuf;
     self->bufio_read_writer->bit_offset = bit_offset;
 
@@ -368,7 +355,7 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     self->huffman_tree->root->index = -1024;
 
     // Write serialized tree into buffer.
-    err = huf_tree_serialize(self->huffman_tree, tree_head, &tree_length);
+    err = huf_tree_serialize(self->huffman_tree, tree_head, (size_t*) &tree_length);
     __assert__(err);
 
     err = huf_bufio_write(self->bufio_read_writer, &len, sizeof(len));
@@ -386,7 +373,7 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     size_t need_to_read;
 
     do {
-        need_to_read = __HUFFMAN_DEFAULT_BUFFER;
+        need_to_read = self->bufio_read_writer->size;
 
         if (left_to_read - need_to_read < 0) {
             need_to_read = left_to_read;

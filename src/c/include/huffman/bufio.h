@@ -51,11 +51,11 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self);
 
 
 huf_error_t
-huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self, size_t size);
+huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self);
 
 
 huf_error_t
-huf_bufio_write(huf_bufio_read_writer_t *self, void *buf, size_t size);
+huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t size);
 
 
 huf_error_t

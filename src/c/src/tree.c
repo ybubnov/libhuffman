@@ -1,5 +1,6 @@
 #include "huffman/tree.h"
 #include "huffman/malloc.h"
+#include "huffman/sys.h"
 
 
 huf_error_t
@@ -49,7 +50,7 @@ huf_tree_free(huf_tree_t **self)
 {
     __try__;
 
-    huf_tree_t self_ptr;
+    huf_tree_t *self_ptr;
 
     __argument__(self);
 
@@ -132,7 +133,7 @@ huf_tree_deserialize(huf_tree_t *self, int16_t *buf, size_t len)
 
     buf_end = buf + len;
 
-    err = __huf_deserialize_tree(self->root, &buf, buf_end);
+    err = __huf_deserialize_tree(&self->root, &buf, buf_end);
     __assert__(err);
 
     __finally__;
@@ -146,7 +147,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
     __try__;
 
     huf_error_t err;
-    huf_node_t *buf_ptr = NULL;
+    int16_t *buf_ptr = NULL;
 
     size_t left_branch_len = 0;
     size_t right_branch_len = 0;
