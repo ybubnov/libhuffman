@@ -68,9 +68,75 @@ huf_tree_free(huf_tree_t **self)
 }
 
 
+static huf_error_t
+__huf_deserialize_tree(huf_node_t **node, int16_t **begin, const int16_t *end)
+{
+    __try__;
+
+    huf_node_t **node_left;
+    huf_node_t **node_right;
+    huf_node_t *node_ptr;
+
+    huf_error_t err;
+
+    int16_t node_index;
+    int16_t *begin_ptr = NULL;
+
+    __argument__(node);
+    __argument__(begin);
+    __argument__(end);
+
+    begin_ptr = *begin;
+
+    if (begin_ptr + 1 > end) {
+        __raise__(HUF_ERROR_INVALID_ARGUMENT);
+    }
+
+    node_ptr = *node;
+    node_index = *begin_ptr;
+
+    begin_ptr++;
+
+    if (node_index != __HUFFMAN_LEAF) {
+        err = huf_malloc((void**) &node_ptr, sizeof(huf_node_t), 1);
+        __assert__(err);
+
+        node_ptr->index = node_index;
+
+        node_left = &(node_ptr->left);
+        node_right = &(node_ptr->right);
+
+        err = __huf_deserialize_tree(node_left, begin, end);
+        __assert__(err);
+
+        err = __huf_deserialize_tree(node_right, begin, end);
+        __assert__(err);
+    }
+
+    __finally__;
+    __end__;
+}
+
+
 huf_error_t
 huf_tree_deserialize(huf_tree_t *self, int16_t *buf, size_t len)
 {
+    __try__;
+
+    huf_error_t err;
+
+    int16_t *buf_end;
+
+    __argument__(self);
+    __argument__(buf);
+
+    buf_end = buf + len;
+
+    err = __huf_deserialize_tree(self->root, &buf, buf_end);
+    __assert__(err);
+
+    __finally__;
+    __end__;
 }
 
 
@@ -98,8 +164,10 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
         __assert__(err);
 
         buf_ptr = buf + left_branch_len;
+
         err = __huf_serialize_tree(node->right, buf_ptr, &right_branch_len);
         __assert__(err);
+
     } else {
         *buf = __HUFFMAN_LEAF;
     }

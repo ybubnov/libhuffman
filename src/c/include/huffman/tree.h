@@ -4,10 +4,11 @@
 #include "huffman/common.h"
 #include "huffman/errors.h"
 
-/* Default buffer size for write operations.
- */
-#define __HUFFMAN_DEFAULT_BUFFER 65536
 #define __HUFFMAN_ASCII_SYMBOLS 256
+
+/* Maximum length of the 2-byte serialized huffman tree.
+ */
+#define __HUFFMAN_MAX_TREE_LENGTH 1024
 
 /* All leafs of the huffman tree will be marked with that value.
  */

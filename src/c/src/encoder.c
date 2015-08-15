@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "huffman/archiver.h"
+#include "huffman/encoder.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
 
@@ -92,7 +92,7 @@ __huf_create_tree(huf_encoder_t *self, const huf_read_writer_t *read_writer)
 
         // Tree is constructed.
         if (index1 == -1 || index2 == -1) {
-            self->root = shadow_tree[node-1];
+            self->huffman_tree->root = shadow_tree[node-1];
             break;
         }
 
@@ -110,11 +110,11 @@ __huf_create_tree(huf_encoder_t *self, const huf_read_writer_t *read_writer)
         __assert__(err);
 
         if (index1 < __HUFFMAN_ASCII_SYMBOLS) {
-            self->leaves[index1] = shadow_tree[index1];
+            self->huffman_tree->leaves[index1] = shadow_tree[index1];
         }
 
         if (index2 < __HUFFMAN_ASCII_SYMBOLS) {
-            self->leaves[index2] = shadow_tree[index2];
+            self->huffman_tree->leaves[index2] = shadow_tree[index2];
         }
 
         shadow_tree[index1]->parent = shadow_tree[node];
@@ -149,7 +149,7 @@ __huf_create_tree(huf_encoder_t *self, const huf_read_writer_t *read_writer)
 
 
 static huf_error_t
-__huf_create_char_coding(huf_archiver_t *self)
+__huf_create_char_coding(huf_encoder_t *self)
 {
     __try__;
 
@@ -165,7 +165,7 @@ __huf_create_char_coding(huf_archiver_t *self)
     __assert__(err);
 
     for (index = 0; index < 256; index++) {
-        pointer = self->leaves[index];
+        pointer = self->huffman_tree->leaves[index];
         position = 0;
 
         while (pointer) {
@@ -195,41 +195,8 @@ __huf_create_char_coding(huf_archiver_t *self)
     __end__;
 }
 
-
 static huf_error_t
-__huf_serialize_tree(huf_node_t* tree, int16_t** dest, int16_t *pos)
-{
-    __try__;
-
-    int16_t l_len, r_len;
-    huf_error_t err;
-
-    __argument__(pos);
-    __argument__(dest);
-
-    if (tree) {
-        **dest = tree->index;
-
-        (*dest)++;
-        err = __huf_serialize_tree(tree->left, dest, &l_len);
-        __assert__(err);
-
-        (*dest)++;
-        err = __huf_serialize_tree(tree->right, dest, &r_len);
-        __assert__(err);
-
-        *pos = l_len + r_len + 1;
-    } else {
-        **dest = __HUFFMAN_LEAF;
-        *pos = 1;
-    }
-
-    __finally__;
-    __end__;
-}
-
-static huf_error_t
-__huf_encode_partial(huf_archiver_t* self, const huf_read_writer_t *read_writer, uint8_t *buf, uint64_t len)
+__huf_encode_partial(huf_encoder_t* self, const huf_read_writer_t *read_writer, uint8_t *buf, uint64_t len)
 {
     __try__;
 
@@ -248,10 +215,10 @@ __huf_encode_partial(huf_archiver_t* self, const huf_read_writer_t *read_writer,
     __argument__(self->char_coding);
     __argument__(read_writer);
 
-    byte_rwbuf = self->bufio_read_writer.byte_rwbuf;
-    byte_offset = self->bufio_read_writer.byte_offset;
-    bit_rwbuf = self->bufio_read_writer.bit_rwbuf;
-    bit_offset = self->bufio_read_writer.bit_offset;
+    byte_rwbuf = self->bufio_read_writer->byte_rwbuf;
+    byte_offset = self->bufio_read_writer->byte_offset;
+    bit_rwbuf = self->bufio_read_writer->bit_rwbuf;
+    bit_offset = self->bufio_read_writer->bit_offset;
 
     for (pos = 0; pos < len; pos++) {
         leaf = self->char_coding[buf[pos]];
@@ -284,17 +251,17 @@ __huf_encode_partial(huf_archiver_t* self, const huf_read_writer_t *read_writer,
 
     __finally__;
 
-    self->bufio_read_writer.byte_rwbuf = byte_rwbuf;
-    self->bufio_read_writer.byte_offset = byte_offset;
-    self->bufio_read_writer.bit_rwbuf = bit_rwbuf;
-    self->bufio_read_writer.bit_offset = bit_offset;
+    self->bufio_read_writer->byte_rwbuf = byte_rwbuf;
+    self->bufio_read_writer->byte_offset = byte_offset;
+    self->bufio_read_writer->bit_rwbuf = bit_rwbuf;
+    self->bufio_read_writer->bit_offset = bit_offset;
 
     __end__;
 }
 
 
 static huf_error_t
-__huf_encode_flush(huf_archiver_t *self, const huf_read_writer_t *read_writer)
+__huf_encode_flush(huf_encoder_t *self, const huf_read_writer_t *read_writer)
 {
     __try__;
 
@@ -302,9 +269,9 @@ __huf_encode_flush(huf_archiver_t *self, const huf_read_writer_t *read_writer)
     huf_error_t err;
 
     __argument__(self);
-    // __argument__(self->bufio_read_writer);
+    __argument__(read_writer);
 
-    bufio_read_writer = &(self->bufio_read_writer);
+    bufio_read_writer = self->bufio_read_writer;
 
     if (bufio_read_writer->bit_offset != 7) {
         bufio_read_writer->byte_offset++;
@@ -354,11 +321,11 @@ huf_encoder_free(huf_encoder_t **self)
     __try__;
 
     huf_error_t err;
-    huf_decoder_t *self_ptr;
+    huf_encoder_t *self_ptr;
 
     __argument__(self);
 
-    self_ptr = self;
+    self_ptr = *self;
 
     err = huf_tree_free(&self_ptr->huffman_tree);
     __assert__(err);
@@ -384,19 +351,13 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     huf_read_writer_t read_writer = {reader, writer, len};
     huf_encoder_t *self = NULL;
 
-    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
+    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER] = {0};
 
-    int16_t *tree_head_copy = NULL;
-    int16_t *tree_head = NULL;
-    int16_t length;
+    int16_t tree_head[__HUFFMAN_MAX_TREE_LENGTH] = {0};
+    int16_t tree_length = 0;
 
     err = huf_encoder_init(&self, &read_writer);
     __assert__(err);
-
-    err = huf_malloc((void**) &tree_head_copy, sizeof(uint16_t), 1024);
-    __assert__(err);
-
-    tree_head = tree_head_copy;
 
     err = __huf_create_tree(self, &read_writer);
     __assert__(err);
@@ -404,17 +365,20 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     err = __huf_create_char_coding(self);
     __assert__(err);
 
-    self->root->index = -1024;
+    self->huffman_tree->root->index = -1024;
 
-    err = __huf_serialize_tree(self->root, &tree_head_copy, &length);
+    // Write serialized tree into buffer.
+    err = huf_tree_serialize(self->huffman_tree, tree_head, &tree_length);
     __assert__(err);
 
-    self->bufio_read_writer.byte_offset = sizeof(len) + sizeof(length) + length * sizeof(*tree_head);
+    err = huf_bufio_write(self->bufio_read_writer, &len, sizeof(len));
+    __assert__(err);
 
-    memcpy(self->bufio_read_writer.byte_rwbuf, &len, sizeof(len));
-    memcpy(self->bufio_read_writer.byte_rwbuf + sizeof(len), &length, sizeof(length));
-    memcpy(self->bufio_read_writer.byte_rwbuf + sizeof(len) + sizeof(length),
-            tree_head, length * sizeof(*tree_head));
+    err = huf_bufio_write(self->bufio_read_writer, &tree_length, sizeof(tree_length));
+    __assert__(err);
+
+    err = huf_bufio_write(self->bufio_read_writer, tree_head, tree_length * sizeof(int16_t));
+    __assert__(err);
 
     lseek(reader, 0, SEEK_SET);
 
@@ -443,7 +407,6 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     __finally__;
 
     huf_encoder_free(&self);
-    free(tree_head);
 
     __end__;
 }

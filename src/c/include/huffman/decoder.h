@@ -28,7 +28,7 @@ typedef struct __huf_decoder {
  * Created instance should be deleted with huf_decoder_free.
  */
 huf_error_t
-huf_decoder_init(huf_archiver_t **self, huf_read_writer_t *read_writer);
+huf_decoder_init(huf_decoder_t **self, huf_read_writer_t *read_writer);
 
 
 /* Function huf_decoder_free releases allocated memory.

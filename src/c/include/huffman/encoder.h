@@ -29,7 +29,7 @@ typedef struct __huf_encoder {
  * Created instance should be deleted with huf_encoder_free.
  */
 huf_error_t
-huf_encoder_init(huf_encoder_t **self, bufio_read_writer_t *read_writer);
+huf_encoder_init(huf_encoder_t **self, huf_read_writer_t *read_writer);
 
 
 /* Function huf_encoder_free releases allocated memory.
