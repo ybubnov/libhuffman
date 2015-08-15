@@ -10,17 +10,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "core.h"
+#include "huffman.h"
 
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-    int ifd, ofd;
-    huf_ctx_t hctx;
-    struct stat64 st;
+    huf_reader_t reader;
+    huf_writer_t writer;
+    huf_archiver_t *huffman_archiver;
 
-    char *ifl_name, *ofl_name;
-    huf_error_t (*process)(huf_ctx_t*, int, int, uint64_t);
+    huf_error_t (*process)(huf_archiver_t*, huf_reader_t, huf_writer_t, uint64_t);
 
     if (argc < 4) {
         fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
@@ -36,38 +35,41 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    ifl_name = argv[2];
-    ofl_name = argv[3];
+    char *reader_name = argv[2];
+    char *writer_name = argv[3];
 
-    stat64(ifl_name, &st);
+    struct stat64 st;
+    stat64(reader_name, &st);
 
-    if ((ifd = open(ifl_name, O_LARGEFILE | O_RDONLY)) < 0) {
-        fprintf(stderr, "Open file %s error.\n\n", ifl_name);
+    reader = open(reader_name, O_LARGEFILE | O_RDONLY);
+    if (reader < 0) {
+        fprintf(stderr, "Open file %s error.\n\n", reader_name);
         fprintf(stderr, "It seems that this file does not exists\n");
         fprintf(stderr, "or you do not have permission to read it.\n");
         return -1;
     }
 
-    if ((ofd = open(ofl_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0) {
-        fprintf(stderr, "Open file %s error.\n\n", ofl_name);
+    writer = open(writer_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    if (writer < 0) {
+        fprintf(stderr, "Open file %s error.\n\n", writer_name);
         fprintf(stderr, "It seems that this file does not exists\n");
         fprintf(stderr, "or you do not have write permission on this file.\n");
         return -1;
     }
 
-    if (huf_init(&hctx) != 0) {
+    if (huf_init(&huffman_archiver) != 0) {
         return -1;
     }
 
-    if (process(&hctx, ifd, ofd, st.st_size) != 0) {
+    if (process(huffman_archiver, reader, writer, st.st_size) != 0) {
         fprintf(stderr, "File processing failed.\n");
         return -1;
     }
 
-    huf_free(&hctx);
+    huf_free(&huffman_archiver);
 
-    close(ifd);
-    close(ofd);
+    close(reader);
+    close(writer);
 
     return 0;
 }

@@ -1,25 +1,31 @@
-#ifndef RUNTIME_H
-#define RUNTIME_H
+#ifndef INCLUDE_huffman_sys_h__
+#define INCLUDE_huffman_sys_h__
+
 
 #define __try__ \
     huf_error_t __error__ = HUF_ERROR_SUCCESS \
 
+
 #define __finally__ \
     cleanup: \
+
 
 #define __end__ \
     do { \
         return __error__; \
     } while (0) \
 
+
 #define __raised__ \
     (__error__ != HUF_ERROR_SUCCESS) \
+
 
 #define __raise__(error) \
     do { \
         __error__ = (error); \
         goto cleanup; \
     } while (0) \
+
 
 #define __argument__(argument) \
     do { \
@@ -29,6 +35,7 @@
         } \
     } while (0) \
 
+
 #define __assert__(error) \
     do { \
         if ((error) != HUF_ERROR_SUCCESS) { \
@@ -37,12 +44,5 @@
         } \
     } while (0) \
 
-#define __assert_not_nil__(statement, error) \
-    do { \
-        if ((statement) == 0) { \
-            __error__ = (error); \
-            goto cleanup; \
-        } \
-    } while (0) \
 
-#endif // RUNTIME_H
+#endif // INCLUDE_huffman_sys_h__

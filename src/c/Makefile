@@ -2,14 +2,18 @@
 
 NAME    := hrc
 
-SOURCE  := src
-INCLUDE := include
 BUILD   := build
 
-CFLAGS  := -Wall -Werror -O2 -I$(INCLUDE)
+INCLUDE := -Iinclude
+INCLUDE += -Iinclude/runtime
+
+SOURCE  := src/*.c
+SOURCE  += src/huffman/*.c
+
+CFLAGS  := -Wall -Wpedantic -Werror -O2 $(INCLUDE) -std=c99
 
 # Object file names
-OBJECTS := $(wildcard $(SOURCE)/*.c)
+OBJECTS := $(wildcard $(SOURCE))
 OBJECTS := $(subst .c,.o,$(OBJECTS))
 
 CC      := gcc
@@ -19,11 +23,8 @@ all: $(BUILD) $(BUILD)/$(NAME)
 $(BUILD):
 	mkdir -p $(BUILD)
 
-$(BUILD)/%.o: $(SOURCE)/%.c
-	$(CC) -c $< -o $@ $(CFLAGS)
-
 $(BUILD)/$(NAME): main.c $(OBJECTS)
-	$(CC) $^ -o $@ $(CFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
 	rm -rf $(BUILD)

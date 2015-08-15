@@ -1,7 +1,6 @@
-#ifndef ERROR_H
-#define ERROR_H
+#ifndef INCLUDE_huffman_errors_h__
+#define INCLUDE_huffman_errors_h__
 
-#include <stdio.h>
 
 typedef enum {
     HUF_ERROR_SUCCESS,
@@ -17,4 +16,5 @@ typedef enum {
  */
 const char* huf_err_string(huf_error_t error);
 
-#endif //ERROR_H
+
+#endif // INCLUDE_huffman_errors_h__
