@@ -11,12 +11,15 @@
 #include <unistd.h>
 
 #include "huffman.h"
+#include "huffman/sys.h"
 
 
 int main(int argc, char **argv)
 {
     huf_reader_t reader;
     huf_writer_t writer;
+
+    huf_error_t err;
 
     huf_error_t (*process)(huf_reader_t, huf_writer_t, uint64_t);
 
@@ -48,6 +51,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    __debug__("Opened a reader\n");
+
     writer = open(writer_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (writer < 0) {
         fprintf(stderr, "Open file %s error.\n\n", writer_name);
@@ -56,8 +61,12 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (process(reader, writer, st.st_size) != 0) {
-        fprintf(stderr, "File processing failed.\n");
+    __debug__("Opened a writer\n");
+
+    err = process(reader, writer, st.st_size);
+
+    if (err != HUF_ERROR_SUCCESS) {
+        fprintf(stderr, "%s\n", huf_err_string(err));
         return -1;
     }
 

@@ -18,7 +18,7 @@ huf_tree_init(huf_tree_t **self)
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) self_ptr->leaves, sizeof(huf_node_t*), __HUFFMAN_ASCII_SYMBOLS * 2);
+    err = huf_malloc((void**) &self_ptr->leaves, sizeof(huf_node_t*), __HUFFMAN_ASCII_SYMBOLS * 2);
     __assert__(err);
 
     __finally__;
@@ -70,49 +70,75 @@ huf_tree_free(huf_tree_t **self)
 
 
 static huf_error_t
-__huf_deserialize_tree(huf_node_t **node, int16_t **begin, const int16_t *end)
+__huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
 {
     __try__;
 
-    huf_node_t **node_left;
-    huf_node_t **node_right;
-    huf_node_t *node_ptr;
+    huf_node_t **node_left = NULL;
+    huf_node_t **node_right = NULL;
+    huf_node_t *node_ptr = NULL;
 
     huf_error_t err;
 
-    int16_t node_index;
-    int16_t *begin_ptr = NULL;
+    const int16_t *buf_ptr = NULL;
+    size_t buf_len = 0;
+
+    int16_t node_index = __HUFFMAN_LEAF;
+
+    size_t left_branch_len = 0;
+    size_t right_branch_len = 0;
 
     __argument__(node);
-    __argument__(begin);
-    __argument__(end);
+    __argument__(buf);
+    __argument__(len);
 
-    begin_ptr = *begin;
+    buf_len = *len;
 
-    if (begin_ptr + 1 > end) {
-        __raise__(HUF_ERROR_INVALID_ARGUMENT);
+    if (buf_len < 1) {
+        // Set length of the read data to zero, since there is
+        // nothing to read;
+        *len = 0;
+
+        __raise__(HUF_ERROR_SUCCESS);
     }
 
     node_ptr = *node;
-    node_index = *begin_ptr;
+    node_index = *buf;
 
-    begin_ptr++;
+    if (node_index == __HUFFMAN_LEAF) {
+        // Set length of the read data to one, since leaf is a
+        // part of the serialized tree.
+        *len = 1;
 
-    if (node_index != __HUFFMAN_LEAF) {
-        err = huf_malloc((void**) &node_ptr, sizeof(huf_node_t), 1);
-        __assert__(err);
-
-        node_ptr->index = node_index;
-
-        node_left = &(node_ptr->left);
-        node_right = &(node_ptr->right);
-
-        err = __huf_deserialize_tree(node_left, begin, end);
-        __assert__(err);
-
-        err = __huf_deserialize_tree(node_right, begin, end);
-        __assert__(err);
+        __raise__(HUF_ERROR_SUCCESS);
     }
+
+    err = huf_malloc((void**) &node_ptr, sizeof(huf_node_t), 1);
+    __assert__(err);
+
+    *node = node_ptr;
+
+    node_ptr->index = node_index;
+
+    node_left = &node_ptr->left;
+    node_right = &node_ptr->right;
+
+    buf_ptr = buf + 1;
+    // Current node is deserialized, so shift pointer to the next one
+    // and reduce overal length of buffer by one.
+    left_branch_len = buf_len - 1;
+
+    err = __huf_deserialize_tree(node_left, buf_ptr, &left_branch_len);
+    __assert__(err);
+
+    buf_ptr += left_branch_len;
+    right_branch_len = buf_len - left_branch_len - 1;
+
+    err = __huf_deserialize_tree(node_right, buf_ptr, &right_branch_len);
+    __assert__(err);
+
+    // Return in len argument length of the read data.
+    *len = left_branch_len + right_branch_len + 1;
 
     __finally__;
     __end__;
@@ -120,20 +146,16 @@ __huf_deserialize_tree(huf_node_t **node, int16_t **begin, const int16_t *end)
 
 
 huf_error_t
-huf_tree_deserialize(huf_tree_t *self, int16_t *buf, size_t len)
+huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
 {
     __try__;
 
     huf_error_t err;
 
-    int16_t *buf_end;
-
     __argument__(self);
     __argument__(buf);
 
-    buf_end = buf + len;
-
-    err = __huf_deserialize_tree(&self->root, &buf, buf_end);
+    err = __huf_deserialize_tree(&self->root, buf, &len);
     __assert__(err);
 
     __finally__;
@@ -152,19 +174,18 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
     size_t left_branch_len = 0;
     size_t right_branch_len = 0;
 
-    __argument__(node);
     __argument__(buf);
     __argument__(len);
-
-    buf_ptr = buf + 1;
 
     if (node) {
         *buf = node->index;
 
+        buf_ptr = buf + 1;
+
         err = __huf_serialize_tree(node->left, buf_ptr, &left_branch_len);
         __assert__(err);
 
-        buf_ptr = buf + left_branch_len;
+        buf_ptr += left_branch_len;
 
         err = __huf_serialize_tree(node->right, buf_ptr, &right_branch_len);
         __assert__(err);

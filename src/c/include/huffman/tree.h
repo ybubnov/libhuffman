@@ -12,20 +12,20 @@
 
 /* All leafs of the huffman tree will be marked with that value.
  */
-#define __HUFFMAN_LEAF 1024
+#define __HUFFMAN_LEAF -1
 
 
 typedef struct __huf_node {
     int16_t index;
-    struct __huf_node* parent;
-    struct __huf_node* left;
-    struct __huf_node* right;
+    struct __huf_node *parent;
+    struct __huf_node *left;
+    struct __huf_node *right;
 } huf_node_t;
 
 
 typedef struct __huf_char_coding {
-    int length;
-    uint8_t* encoding;
+    size_t length;
+    uint8_t *encoding;
 } huf_char_coding_t;
 
 
@@ -49,7 +49,7 @@ huf_tree_free(huf_tree_t **self);
 
 
 huf_error_t
-huf_tree_deserialize(huf_tree_t *self, int16_t *buf, size_t len);
+huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len);
 
 
 huf_error_t

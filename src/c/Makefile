@@ -10,7 +10,7 @@ INCLUDE += -Iinclude/runtime
 SOURCE  := src/*.c
 SOURCE  += src/huffman/*.c
 
-CFLAGS  := -Wall -Wpedantic -Werror -O2 $(INCLUDE) -std=c99
+CFLAGS  := -Wall -Wpedantic -Werror -O2 $(INCLUDE) -std=c99 -g
 
 # Object file names
 OBJECTS := $(wildcard $(SOURCE))

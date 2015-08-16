@@ -10,21 +10,21 @@ huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *re
 {
     __try__;
 
-    huf_bufio_read_writer_t *self_pointer;
+    huf_bufio_read_writer_t *self_ptr = NULL;
     huf_error_t err;
 
     __argument__(self);
 
-    err = huf_malloc((void**) self, sizeof(huf_bufio_read_writer_t), 1);
+    err = huf_malloc((void**) &self_ptr, sizeof(huf_bufio_read_writer_t), 1);
     __assert__(err);
 
-    self_pointer = *self;
+    *self = self_ptr;
 
-    err = huf_malloc((void**) &self_pointer->byte_rwbuf, sizeof(uint8_t), size);
+    err = huf_malloc((void**) &self_ptr->byte_rwbuf, sizeof(uint8_t), size);
     __assert__(err);
 
-    self_pointer->size = size;
-    self_pointer->read_writer = read_writer;
+    self_ptr->size = size;
+    self_ptr->read_writer = read_writer;
 
     __finally__;
     __end__;
@@ -36,14 +36,14 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self)
 {
     __try__;
 
-    huf_bufio_read_writer_t *self_pointer;
+    huf_bufio_read_writer_t *self_ptr;
 
     __argument__(self);
 
-    self_pointer = *self;
+    self_ptr = *self;
 
-    free(self_pointer->byte_rwbuf);
-    free(self_pointer);
+    free(self_ptr->byte_rwbuf);
+    free(self_ptr);
 
     *self = 0;
 
@@ -144,8 +144,8 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
         self->have_been_written += self->size;
     }
 
-    memcpy(self->byte_rwbuf, buf_ptr, len);
-    self->byte_offset = len;
+    memcpy(self->byte_rwbuf + self->byte_offset, buf_ptr, len);
+    self->byte_offset += len;
 
     __finally__;
     __end__;
@@ -166,8 +166,8 @@ huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
     __assert__(err);
 
     // Put byte into the buffer.
-    self->byte_offset++;
     self->byte_rwbuf[self->byte_offset] = byte;
+    self->byte_offset++;
 
     __finally__;
     __end__;

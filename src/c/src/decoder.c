@@ -62,10 +62,10 @@ huf_decoder_init(huf_decoder_t **self, huf_read_writer_t *read_writer)
     __argument__(self);
     __argument__(read_writer);
 
-    err = huf_malloc((void**) self, sizeof(huf_decoder_t), 1);
+    err = huf_malloc((void**) &self_ptr, sizeof(huf_decoder_t), 1);
     __assert__(err);
 
-    self_ptr = *self;
+    *self = self_ptr;
 
     // Allocate memory for Huffman tree.
     err = huf_tree_init(&self_ptr->huffman_tree);
@@ -118,7 +118,7 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     huf_error_t err;
 
     uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
-    uint64_t reader_length;
+    uint64_t reader_length = 0;
 
     int16_t *tree_head = NULL;
     int16_t tree_length = 0;
@@ -130,17 +130,23 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     err = huf_decoder_init(&self, &read_writer);
     __assert__(err);
 
+    __debug__("SELF 1 %p\n", (void*)self);
+
     // Read the length of the original file.
     need_to_read = sizeof(reader_length);
     left_to_read -= need_to_read;
     err = huf_read(reader, &reader_length, &need_to_read);
     __assert__(err);
 
+    __debug__("SELF 2 %p %lld\n", (void*)self, reader_length);
+
     // Read the length of the huffman tree.
     need_to_read = sizeof(tree_length);
     left_to_read -= need_to_read;
     err = huf_read(reader, &tree_length, &need_to_read);
     __assert__(err);
+
+    __debug__("SELF 3 %p\n", (void*)self);
 
     // Allocate memory for huffman tree.
     err = huf_malloc((void**) &tree_head, sizeof(*tree_head), tree_length);
@@ -152,9 +158,15 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     err = huf_read(reader, tree_head, &need_to_read);
     __assert__(err);
 
+    __debug__("SELF 4 %p\n", (void*)self);
+
     // Create linked tree strcuture.
     err = huf_tree_deserialize(self->huffman_tree, tree_head, tree_length);
     __assert__(err);
+
+    __debug__("SELF 5 %p\n", (void*)self);
+
+    __debug__("ROOT %p\n", (void*) self->huffman_tree->root);
 
     self->last_node = 0;
 
@@ -168,14 +180,17 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
         err = huf_read(reader, buf, &need_to_read);
         __assert__(err);
 
+        __debug__("HERE\n");
+
         err = __huf_decode_partial(self, buf, need_to_read);
         __assert__(err);
 
         left_to_read -= need_to_read;
     } while (left_to_read);
 
-    reader_length -= self->bufio_read_writer->have_been_written;
-    err = huf_bufio_read_writer_flush(self->bufio_read_writer, reader_length);
+    /*reader_length -= self->bufio_read_writer->have_been_written;*/
+    /*err = huf_bufio_read_writer_flush(self->bufio_read_writer, reader_length);*/
+    err = huf_bufio_read_writer_flush(self->bufio_read_writer);
     __assert__(err);
 
     __finally__;
