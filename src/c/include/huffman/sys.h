@@ -28,6 +28,8 @@
         goto cleanup; \
     } while (0) \
 
+#define __success__ \
+    __raise__(HUF_ERROR_SUCCESS) \
 
 #define __argument__(argument) \
     do { \

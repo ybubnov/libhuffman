@@ -6,6 +6,7 @@
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
 
+#if 0
 
 static huf_error_t
 __huf_create_tree(huf_encoder_t *self, const huf_read_writer_t *read_writer)
@@ -250,21 +251,17 @@ __huf_encode_flush(huf_encoder_t *self, const huf_read_writer_t *read_writer)
 {
     __try__;
 
-    huf_bufio_read_writer_t *bufio_read_writer;
     huf_error_t err;
 
     __argument__(self);
     __argument__(read_writer);
 
-    bufio_read_writer = self->bufio_read_writer;
+    if (self->bufio_read_writer->bit_offset != 7) {
+        printf("FLUSH\t=>\t%x\n", self->bufio_read_writer->bit_rwbuf);
 
-    if (bufio_read_writer->bit_offset != 7) {
-        bufio_read_writer->byte_offset++;
-        bufio_read_writer->byte_rwbuf[bufio_read_writer->byte_offset] = bufio_read_writer->bit_rwbuf;
+        err = huf_bufio_write_uint8(self->bufio_read_writer, self->bufio_read_writer->bit_rwbuf);
+        __assert__(err);
     }
-
-    err = huf_write(read_writer->writer, bufio_read_writer->byte_rwbuf, bufio_read_writer->byte_offset);
-    __assert__(err);
 
     __finally__;
     __end__;
@@ -395,9 +392,15 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     err = __huf_encode_flush(self, &read_writer);
     __assert__(err);
 
+    // Flush buffer to the file.
+    err = huf_bufio_read_writer_flush(self->bufio_read_writer);
+    __assert__(err);
+
     __finally__;
 
     huf_encoder_free(&self);
 
     __end__;
 }
+
+#endif

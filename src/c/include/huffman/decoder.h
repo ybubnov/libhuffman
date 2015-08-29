@@ -18,9 +18,13 @@ typedef struct __huf_decoder {
      */
     huf_node_t *last_node;
 
-    /* read_writer groups read and write operations
+    /* Buffer for write operations.
      */
-    huf_bufio_read_writer_t *bufio_read_writer;
+    huf_bufio_read_writer_t *bufio_writer;
+
+    /* Buffer for read opearions.
+     */
+    huf_bufio_read_writer_t *bufio_reader;
 } huf_decoder_t;
 
 

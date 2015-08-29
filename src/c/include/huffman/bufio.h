@@ -5,41 +5,38 @@
 #include "huffman/errors.h"
 #include "huffman/io.h"
 
-/* Default buffer size for write operations.
- */
+// Default buffer size for write operations.
 #define __HUFFMAN_DEFAULT_BUFFER 65536
 
-/* bufio_read_writer represents bit-grained read/writer buffer.
- */
+// huf_bufio_read_writer_t represents read/writer buffer.
 typedef struct __huf_bufio_read_writer {
-    /* Byte sized read/write buffer.
-     */
-    uint8_t *byte_rwbuf;
+    // Byte sized read/write buffer.
+    uint8_t *bytes;
 
-    /* Current offset for byte buffer.
-     */
-    uint32_t byte_offset;
+    // Current read position.
+    size_t offset;
 
-    /* Bit sized read/write buffer.
-     */
-    uint8_t bit_rwbuf;
+    // Available size in bytes of the buffer.
+    size_t capacity;
 
-    /* Current offset for bit buffer.
-     */
-    uint8_t bit_offset;
+    // Current length of the buffer. Will be increased on write
+    // operations until this value will reach buffer capacity.
+    size_t length;
 
-    /* Size in bytes of the buffer.
-     */
-    size_t size;
+    // Count of bytes have been processed by read-writer.
+    uint64_t have_been_processed;
 
-    /* Count of bytes have been written to writer.
-     */
-    uint64_t have_been_written;
-
-    /* Read-Writer instance.
-     */
+    // Read-Writer instance.
     huf_read_writer_t *read_writer;
 } huf_bufio_read_writer_t;
+
+//    /* Bit sized read/write buffer.
+//     */
+//    uint8_t bit_rwbuf;
+//
+//    /* Current offset for bit buffer.
+//     */
+//    uint8_t bit_offset;
 
 
 huf_error_t
@@ -56,6 +53,10 @@ huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self);
 
 huf_error_t
 huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t size);
+
+
+huf_error_t
+huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t size);
 
 
 huf_error_t

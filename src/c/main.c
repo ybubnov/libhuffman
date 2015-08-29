@@ -29,7 +29,8 @@ int main(int argc, char **argv)
     }
 
     if (!strcmp(argv[1], "-c")) {
-        process = huf_encode;
+        /*process = huf_encode;*/
+        process = 0;
     } else if (!strcmp(argv[1], "-x")) {
         process = huf_decode;
     } else {
