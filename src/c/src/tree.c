@@ -4,6 +4,45 @@
 
 
 huf_error_t
+huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
+{
+    __try__;
+
+    huf_node_t *node = self;
+    size_t position = 0;
+
+    __argument__(buf);
+    __argument__(len);
+
+    while(node) {
+        if (!node->parent) {
+            break;
+        }
+
+        // Keep borders of the buffer.
+        if (position >= len) {
+            __success__;
+        }
+
+        if (node->parent->left == node) {
+            buf[position] = '0';
+        } else {
+            buf[position] = '1';
+        }
+
+        position++;
+        node = node->parent;
+    }
+
+    __finally__;
+
+    *len = position;
+
+    __end__;
+}
+
+
+huf_error_t
 huf_tree_init(huf_tree_t **self)
 {
     __try__;
@@ -196,7 +235,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
         *buf = __HUFFMAN_LEAF;
         printf("NODE\t%d\n", *buf);
     }
-    
+
     *len = left_branch_len + right_branch_len + 1;
 
     __finally__;

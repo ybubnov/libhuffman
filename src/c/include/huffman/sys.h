@@ -28,8 +28,19 @@
         goto cleanup; \
     } while (0) \
 
+
 #define __success__ \
     __raise__(HUF_ERROR_SUCCESS) \
+
+
+#define __inrange__(value, low, high) \
+    do { \
+        if ((value) < (low) || (value) > (high)) { \
+            __error__ = HUF_ERROR_INVALID_ARGUMENT; \
+            goto cleanup; \
+        } \
+    } while(0) \
+
 
 #define __argument__(argument) \
     do { \

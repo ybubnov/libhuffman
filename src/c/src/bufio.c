@@ -23,6 +23,12 @@ huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *re
     err = huf_malloc((void**) &self_ptr->bytes, sizeof(uint8_t), capacity);
     __assert__(err);
 
+    // If zero value provided for capacity, then use
+    // 64 KiB buffer by default.
+    if (!capacity) {
+        capacity = __64KIB_BUFFER;
+    }
+
     self_ptr->capacity = capacity;
     self_ptr->read_writer = read_writer;
 
@@ -45,7 +51,7 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self)
     free(self_ptr->bytes);
     free(self_ptr);
 
-    *self = 0;
+    *self = NULL;
 
     __finally__;
     __end__;

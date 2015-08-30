@@ -6,12 +6,13 @@
 
 #define __HUFFMAN_ASCII_SYMBOLS 256
 
-/* Maximum length of the 2-byte serialized huffman tree.
- */
+// Maximum length of the 2-byte serialized huffman tree.
 #define __HUFFMAN_MAX_TREE_LENGTH 1024
 
-/* All leafs of the huffman tree will be marked with that value.
- */
+// Length of the symblos frequency histogram.
+#define __HUFFMAN_HISTOGRAM_LENGTH
+
+// All leafs of the huffman tree will be marked with that value.
 #define __HUFFMAN_LEAF -1
 
 
@@ -23,19 +24,15 @@ typedef struct __huf_node {
 } huf_node_t;
 
 
-typedef struct __huf_char_coding {
-    size_t length;
-    uint8_t *encoding;
-} huf_char_coding_t;
+huf_error_t
+huf_node_to_string(huf_node_t *self, uint8_t *buf, size_t len);
 
 
 typedef struct __huf_tree {
-    /* List of Huffmat tree leaves.
-     */
+    // List of Huffmat tree leaves.
     huf_node_t **leaves;
 
-    /* root element of the Huffman tree.
-     */
+    // Root element of the Huffman tree.
     huf_node_t *root;
 } huf_tree_t;
 

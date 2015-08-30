@@ -1,5 +1,4 @@
 #include <unistd.h>
-#include <stdlib.h>
 
 #include "huffman/decoder.h"
 #include "huffman/malloc.h"
@@ -129,7 +128,7 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
 
     huf_error_t err;
 
-    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER];
+    uint8_t buf[__HUFFMAN_DEFAULT_BUFFER] = {0};
     uint64_t reader_length = 0;
 
     int16_t *tree_head = NULL;
@@ -143,19 +142,19 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
     __assert__(err);
 
     // Read the length of the original file.
-    err = huf_bufio_read(self->bufio_reader, &reader_length, sizeof(reader_length));
+    err = huf_bufio_read(self->bufio_reader, &reader_length, sizeof(uint64_t));
     __assert__(err);
 
     // Read the length of the huffman tree.
-    err = huf_bufio_read(self->bufio_reader, &tree_length, sizeof(tree_length));
+    err = huf_bufio_read(self->bufio_reader, &tree_length, sizeof(int16_t));
     __assert__(err);
 
     // Allocate memory for serialized huffman tree.
-    err = huf_malloc((void**) &tree_head, sizeof(*tree_head), tree_length);
+    err = huf_malloc((void**) &tree_head, sizeof(int16_t), tree_length);
     __assert__(err);
 
     // Read serialized huffman tree.
-    err = huf_bufio_read(self->bufio_reader, tree_head, tree_length * sizeof(*tree_head));
+    err = huf_bufio_read(self->bufio_reader, tree_head, tree_length * sizeof(int16_t));
     __assert__(err);
 
     // Create linked tree strcuture.
