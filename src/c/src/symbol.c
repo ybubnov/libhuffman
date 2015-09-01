@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "huffman/symbol.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
@@ -66,7 +68,7 @@ huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) &self_ptr->symbols, sizeof(*huf_symbol_mapping_element_t), length);
+    err = huf_malloc((void**) &self_ptr->symbols, sizeof(huf_symbol_mapping_element_t), length);
     __assert__(err);
 
     __finally__;
@@ -86,7 +88,7 @@ __huf_symbol_mapping_free(huf_symbol_mapping_t *self)
 
     __argument__(self);
 
-    for (index = 0; index < self->length, index++) {
+    for (index = 0; index < self->length; index++) {
         element = self->symbols[index];
 
         if (!element) {

@@ -12,6 +12,12 @@
 
 
 typedef struct __huf_encoder {
+    // Read-only field with encoder configuration.
+    huf_encoder_config_t *config;
+
+    // Bit buffer.
+    huf_bit_read_writer_t bit_writer;
+
     // huffman_tree stores leaves and the root of
     // the Huffman tree.
     huf_tree_t *huffman_tree;
@@ -22,6 +28,9 @@ typedef struct __huf_encoder {
 
     // Frequencies of the symbols occurence.
     huf_histogram_t *histogram;
+
+    // Read-writer instance.
+    huf_read_writer_t *read_writer;
 
     // bufio_writer represents buffered reader.
     huf_bufio_read_writer_t *bufio_writer;
@@ -34,7 +43,7 @@ typedef struct __huf_encoder {
 // Function huf_encoder_init creates a new context for huffman compressor.
 // Created instance should be deleted with huf_encoder_free.
 huf_error_t
-huf_encoder_init(huf_encoder_t **self, huf_encoder_config *config);
+huf_encoder_init(huf_encoder_t **self, const huf_encoder_config_t *config);
 
 
 // Function huf_encoder_free releases allocated memory.
@@ -45,7 +54,7 @@ huf_encoder_free(huf_encoder_t **self);
 // Function huf_encode compresses data of specifiled length from the
 // reader and writes it into the writer.
 huf_error_t
-huf_encode(huf_encoder_config *config);
+huf_encode(const huf_encoder_config_t *config);
 
 
 #endif // INCLUDE_huffman_encode_h__

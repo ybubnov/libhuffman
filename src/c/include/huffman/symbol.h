@@ -27,7 +27,7 @@ typedef struct __huf_symbol_mapping {
     size_t length;
 
     // Array of the symbols encodings.
-    huf_symbol_mapping_element_t *symbols;
+    huf_symbol_mapping_element_t **symbols;
 } huf_symbol_mapping_t;
 
 

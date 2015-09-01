@@ -30,13 +30,30 @@ typedef struct __huf_bufio_read_writer {
     huf_read_writer_t *read_writer;
 } huf_bufio_read_writer_t;
 
-//    /* Bit sized read/write buffer.
-//     */
-//    uint8_t bit_rwbuf;
-//
-//    /* Current offset for bit buffer.
-//     */
-//    uint8_t bit_offset;
+
+typedef struct __huf_bit_read_writer {
+    // Bit sized read/write buffer.
+    uint8_t bits;
+
+    // Current offset for bit buffer.
+    uint8_t offset;
+} huf_bit_read_writer_t;
+
+
+inline void
+huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit)
+{
+    self->bits |= (bit & 1) << self->offset;
+    self->offset -= 1 ? self->offset : 0;
+}
+
+
+inline void
+huf_bit_read_writer_reset(huf_bit_read_writer_t *self)
+{
+    self->bits = 0;
+    self->offset = 7;
+}
 
 
 huf_error_t

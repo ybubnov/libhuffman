@@ -9,5 +9,7 @@
 
 #define __64KIB_BUFFER 65536
 
+#define __128KIB_BUFFER 131072
+
 
 #endif // INCLUDE_huffman_common_h__

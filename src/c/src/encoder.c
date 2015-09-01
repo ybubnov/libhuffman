@@ -13,7 +13,7 @@ __huf_create_tree_by_histogram(huf_encoder_t *self)
     __try__;
 
     huf_error_t err;
-    huf_node_t *shadow_tree[512];
+    huf_node_t *shadow_tree[512] = {0};
 
     size_t j;
     int64_t rate, rate1, rate2;
@@ -21,7 +21,7 @@ __huf_create_tree_by_histogram(huf_encoder_t *self)
     int16_t node = __HUFFMAN_ASCII_SYMBOLS;
 
     size_t start;
-    uint64_t rates;
+    uint64_t *rates = NULL;
 
     __argument__(self);
 
@@ -127,8 +127,8 @@ __huf_create_char_coding(huf_encoder_t *self)
     huf_node_t *node = NULL;
     huf_symbol_mapping_element_t *element = NULL;
 
-    int index;
-    int position;
+    size_t index;
+    size_t position;
 
     uint8_t coding[__1KIB_BUFFER] = {0};
 
@@ -154,7 +154,7 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_symbol_mapping_insert(self->mapping, index, element);
         __assert__(err);
 
-        printf("%d\t%s\n", index, self->mapping->symbols[index].encoding);
+        printf("%d\t%s\n", index, self->mapping->symbols[index]->coding);
     }
 
     __finally__;
@@ -173,43 +173,31 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
     uint64_t pos;
     size_t index;
 
-    uint8_t bit_rwbuf = 0;
-    size_t bit_offset = 0;
-
     __argument__(self);
-    /*__argument__(self->char_coding);*/
-
-    bit_rwbuf = self->bufio_writer->bit_rwbuf;
-    bit_offset = self->bufio_writer->bit_offset;
+    __argument__(buf);
 
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
         err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
         __assert__(err);
 
-        for (index = element.length; index > 0; index--) {
+        for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
-            bit_rwbuf |= ((element.coding[index - 1] & 1) << bit_offset);
+            huf_bit_write(&self->bit_writer, element->coding[index - 1]);
 
-            if (bit_offset) {
-                bit_offset--;
+            if (self->bit_writer.offset) {
                 continue;
             }
 
             // If buffer is full, the dump it to the writer buffer.
-            err = huf_bufio_write_uint8(self->bufio_writer, bit_rwbuf);
+            err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
             __assert__(err);
 
-            bit_rwbuf = 0;
-            bit_offset = 7;
+            huf_bit_read_writer_reset(&self->bit_writer);
         }
     }
 
     __finally__;
-
-    self->bufio_writer->bit_rwbuf = bit_rwbuf;
-    self->bufio_writer->bit_offset = bit_offset;
-
     __end__;
 }
 
@@ -223,10 +211,10 @@ __huf_encode_flush(huf_encoder_t *self)
 
     __argument__(self);
 
-    if (self->bufio_writer->bit_offset != 7) {
-        printf("FLUSH\t=>\t%x\n", self->bufio_writer->bit_rwbuf);
+    if (self->bit_writer.offset != 7) {
+        printf("FLUSH\t=>\t%x\n", self->bit_writer.bits);
 
-        err = huf_bufio_write_uint8(self->bufio_writer, self->bufio_writer->bit_rwbuf);
+        err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
         __assert__(err);
     }
 
@@ -236,13 +224,13 @@ __huf_encode_flush(huf_encoder_t *self)
 
 
 huf_error_t
-huf_encoder_init(huf_encoder_t **self, const huf_encoder_config *config)
+huf_encoder_init(huf_encoder_t **self, const huf_encoder_config_t *config)
 {
     __try__;
 
     huf_error_t err;
-    huf_read_writer_t read_writer;
     huf_encoder_t *self_ptr = NULL;
+    huf_encoder_config_t *encoder_config = NULL;
 
     __argument__(self);
     __argument__(config);
@@ -252,10 +240,23 @@ huf_encoder_init(huf_encoder_t **self, const huf_encoder_config *config)
 
     *self = self_ptr;
 
+    // Save the encoder configuration.
+    err = huf_encoder_config_init(&encoder_config);
+    __assert__(err);
+
+    memcpy(encoder_config, config, sizeof(*config));
+
+    // If size of encoding chunk set to zero then length of the
+    // data to encode will be treated as size of the chunk.
+    if (!encoder_config->chunk_size) {
+        encoder_config->chunk_size = encoder_config->length;
+    }
+
+    self_ptr->config = encoder_config;
+
     // Initialize read-writer instance.
-    read_writer.reader = config->reader;
-    read_writer.writer = config->writer;
-    read_writer.len = config->length;
+    err = huf_read_writer_init(&self_ptr->read_writer, config->reader, config->writer);
+    __assert__(err);
 
     // Allocate memory for Huffman tree.
     err = huf_tree_init(&self_ptr->huffman_tree);
@@ -270,12 +271,12 @@ huf_encoder_init(huf_encoder_t **self, const huf_encoder_config *config)
 
     // Create buffered writer instance. If writer buffer size set to zero,
     // the 64 KiB buffer will be used by default.
-    err = huf_bufio_read_writer_init(&self_ptr->bufio_writer, read_writer, config->writer_buffer_size);
+    err = huf_bufio_read_writer_init(&self_ptr->bufio_writer, self_ptr->read_writer, config->writer_buffer_size);
     __assert__(err);
 
     // Create buffered reader instance. If reader buffer size set to zero,
     // the 64 KiB buffer will be used by default.
-    err = huf_bufio_read_writer_init(&self_ptr->bufio_reader, read_writer, config->reader_buffer_size);
+    err = huf_bufio_read_writer_init(&self_ptr->bufio_reader, self_ptr->read_writer, config->reader_buffer_size);
     __assert__(err);
 
     __finally__;
@@ -304,10 +305,16 @@ huf_encoder_free(huf_encoder_t **self)
     err = huf_bufio_read_writer_free(&self_ptr->bufio_reader);
     __assert__(err);
 
+    err = huf_read_writer_free(&self_ptr->read_writer);
+    __assert__(err);
+
     err = huf_histogram_free(&self_ptr->histogram);
     __assert__(err);
 
     err = huf_symbol_mapping_free(&self_ptr->mapping);
+    __assert__(err);
+
+    err = huf_encoder_config_free(&self_ptr->config);
     __assert__(err);
 
     free(self_ptr);
@@ -320,14 +327,14 @@ huf_encoder_free(huf_encoder_t **self)
 
 
 huf_error_t
-huf_encode(huf_reader_t reader, huf_writer_t writer, huf_encoder_config *config)
+huf_encode(const huf_encoder_config_t *config)
 {
     __try__;
 
     huf_error_t err;
     huf_encoder_t *self = NULL;
 
-    uint8_t buf[__64KIB_BUFFER] = {0};
+    uint8_t *buf = NULL;
     int16_t tree_head[__HUFFMAN_MAX_TREE_LENGTH] = {0};
 
     int16_t actual_tree_length = 0;
@@ -336,49 +343,71 @@ huf_encode(huf_reader_t reader, huf_writer_t writer, huf_encoder_config *config)
     err = huf_encoder_init(&self, config);
     __assert__(err);
 
-    err = __huf_create_tree_by_histogram(self);
+    err = huf_malloc((void**) &buf, sizeof(uint8_t), self->config->chunk_size);
     __assert__(err);
 
-    err = __huf_create_char_coding(self);
-    __assert__(err);
-
-    printf("ROOT %d\n", self->huffman_tree->root->index);
-
-    // Write serialized tree into buffer.
-    err = huf_tree_serialize(self->huffman_tree, tree_head, &tree_length);
-    __assert__(err);
-
-    actual_tree_length = tree_length;
-
-    err = huf_bufio_write(self->bufio_writer, &len, sizeof(uint64_t));
-    __assert__(err);
-
-    err = huf_bufio_write(self->bufio_writer, &actual_tree_length, sizeof(int16_t));
-    __assert__(err);
-
-    err = huf_bufio_write(self->bufio_writer, tree_head, tree_length * sizeof(int16_t));
-    __assert__(err);
-
-    size_t left_to_read = len;
+    size_t left_to_read = self->config->length;
     size_t need_to_read;
 
     while (left_to_read) {
-        need_to_read = self->bufio_writer->capacity;
+        need_to_read = self->config->chunk_size;
 
         if (left_to_read - need_to_read < 0) {
             need_to_read = left_to_read;
         }
 
+        // Read the next chunk of data, that we are going to encode.
         err = huf_bufio_read(self->bufio_reader, buf, need_to_read);
         __assert__(err);
 
+        err = huf_histogram_populate(self->histogram, buf, self->config->chunk_size);
+        __assert__(err);
+
+        err = __huf_create_tree_by_histogram(self);
+        __assert__(err);
+
+        err = __huf_create_char_coding(self);
+        __assert__(err);
+
+        printf("ROOT %d\n", self->huffman_tree->root->index);
+
+        // Write serialized tree into buffer.
+        err = huf_tree_serialize(self->huffman_tree, tree_head, &tree_length);
+        __assert__(err);
+
+        actual_tree_length = tree_length;
+
+        // Write the size of the next chunk.
+        err = huf_bufio_write(self->bufio_writer, &need_to_read, sizeof(uint64_t));
+        __assert__(err);
+
+        // Write the length of the serialized Huffman tree.
+        err = huf_bufio_write(self->bufio_writer, &actual_tree_length, sizeof(int16_t));
+        __assert__(err);
+
+        // Write the serialized tree itself.
+        err = huf_bufio_write(self->bufio_writer, tree_head, tree_length * sizeof(int16_t));
+        __assert__(err);
+
+        // Write data
         err = __huf_encode_partial(self, buf, need_to_read);
         __assert__(err);
 
         left_to_read -= need_to_read;
+
+        // If there is no more data to read, then skip reset of the histogram.
+        if (!left_to_read) {
+            continue;
+        }
+
+        err = huf_histogram_reset(self->histogram);
+        __assert__(err);
+
+        err = huf_symbol_mapping_reset(self->mapping);
+        __assert__(err);
     }
 
-    err = __huf_encode_flush(self, &read_writer);
+    err = __huf_encode_flush(self);
     __assert__(err);
 
     // Flush buffer to the file.

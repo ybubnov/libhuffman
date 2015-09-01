@@ -8,7 +8,7 @@ huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
 {
     __try__;
 
-    huf_node_t *node = self;
+    const huf_node_t *node = self;
     size_t position = 0;
 
     __argument__(buf);
@@ -20,7 +20,7 @@ huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
         }
 
         // Keep borders of the buffer.
-        if (position >= len) {
+        if (position >= *len) {
             __success__;
         }
 

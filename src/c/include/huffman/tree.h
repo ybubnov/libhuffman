@@ -10,7 +10,7 @@
 #define __HUFFMAN_MAX_TREE_LENGTH 1024
 
 // Length of the symblos frequency histogram.
-#define __HUFFMAN_HISTOGRAM_LENGTH
+#define __HUFFMAN_HISTOGRAM_LENGTH 512
 
 // All leafs of the huffman tree will be marked with that value.
 #define __HUFFMAN_LEAF -1
@@ -25,7 +25,7 @@ typedef struct __huf_node {
 
 
 huf_error_t
-huf_node_to_string(huf_node_t *self, uint8_t *buf, size_t len);
+huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len);
 
 
 typedef struct __huf_tree {

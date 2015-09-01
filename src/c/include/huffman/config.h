@@ -35,6 +35,14 @@ typedef struct __huf_encoder_config {
 } huf_encoder_config_t;
 
 
+huf_error_t
+huf_encoder_config_init(huf_encoder_config_t **self);
+
+
+huf_error_t
+huf_encoder_config_free(huf_encoder_config_t **self);
+
+
 typedef struct __huf_decoder_config {
     // Count of the reader bytes to encode. This is the only
     // mandatory parameter, if set to zero then no data will
@@ -57,6 +65,14 @@ typedef struct __huf_decoder_config {
     // a consumer of the huffman-encoded data.
     huf_writer_t writer;
 } huf_decoder_config_t;
+
+
+huf_error_t
+huf_decoder_config_init(huf_decoder_config_t **self);
+
+
+huf_error_t
+huf_decoder_config_free(huf_decoder_config_t **self);
 
 
 #endif // INCLUDE_huffman_config_h__
