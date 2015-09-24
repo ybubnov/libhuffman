@@ -11,26 +11,24 @@
 #include <unistd.h>
 
 #include "huffman.h"
+#include "huffman/sys.h"
 
 
 int main(int argc, char **argv)
 {
     huf_reader_t reader;
     huf_writer_t writer;
-    huf_archiver_t *huffman_archiver;
 
-    huf_error_t (*process)(huf_archiver_t*, huf_reader_t, huf_writer_t, uint64_t);
+    huf_error_t err;
+
+    /*huf_error_t (*process)(const *encoder_confi);*/
 
     if (argc < 4) {
         fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
         return -1;
     }
 
-    if (!strcmp(argv[1], "-c")) {
-        process = huf_encode;
-    } else if (!strcmp(argv[1], "-x")) {
-        process = huf_decode;
-    } else {
+    if (strcmp(argv[1], "-c")) {
         fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
         return -1;
     }
@@ -49,6 +47,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    __debug__("Opened a reader\n");
+
     writer = open(writer_name, O_LARGEFILE | O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (writer < 0) {
         fprintf(stderr, "Open file %s error.\n\n", writer_name);
@@ -57,16 +57,23 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (huf_init(&huffman_archiver) != 0) {
+    __debug__("Opened a writer\n");
+
+    huf_encoder_config_t encoder_config = {
+        .reader = reader,
+        .writer = writer,
+        .length = st.st_size,
+        .chunk_size = __64KIB_BUFFER,
+        .reader_buffer_size = __128KIB_BUFFER,
+        .writer_buffer_size = __128KIB_BUFFER,
+    };
+
+    err = huf_encode(&encoder_config);
+
+    if (err != HUF_ERROR_SUCCESS) {
+        fprintf(stderr, "%s\n", huf_err_string(err));
         return -1;
     }
-
-    if (process(huffman_archiver, reader, writer, st.st_size) != 0) {
-        fprintf(stderr, "File processing failed.\n");
-        return -1;
-    }
-
-    huf_free(&huffman_archiver);
 
     close(reader);
     close(writer);
