@@ -6,6 +6,12 @@
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
 
+extern void
+huf_bit_write(huf_bit_read_writer_t *, uint8_t);
+
+extern void
+huf_bit_read_writer_reset(huf_bit_read_writer_t *);
+
 
 static huf_error_t
 __huf_create_tree_by_histogram(huf_encoder_t *self)
@@ -28,6 +34,10 @@ __huf_create_tree_by_histogram(huf_encoder_t *self)
     // Create local copies of the histogram instance attibutes.
     start = self->histogram->start;
     rates = self->histogram->frequencies;
+
+    for (int x = 0; x < self->histogram->length; x++) {
+        printf("FREQ - %lld\n", (long long int)self->histogram->frequencies[x]);
+    }
 
     while (start < 512) {
         index1 = index2 = -1;
@@ -71,13 +81,17 @@ __huf_create_tree_by_histogram(huf_encoder_t *self)
             break;
         }
 
-        // Allocate memory for the left child of the node.
-        err = huf_malloc((void**) &shadow_tree[index1], sizeof(huf_node_t), 1);
-        __assert__(err);
+        if (!shadow_tree[index1]) {
+            // Allocate memory for the left child of the node.
+            err = huf_malloc((void**) &shadow_tree[index1], sizeof(huf_node_t), 1);
+            __assert__(err);
+        }
 
-        // Allocate memory for the right child of the node.
-        err = huf_malloc((void**) &shadow_tree[index2], sizeof(huf_node_t), 1);
-        __assert__(err);
+        if (!shadow_tree[index2]) {
+            // Allocate memory for the right child of the node.
+            err = huf_malloc((void**) &shadow_tree[index2], sizeof(huf_node_t), 1);
+            __assert__(err);
+        }
 
         // Allocate memory for the node itself.
         err = huf_malloc((void**) &shadow_tree[node], sizeof(huf_node_t), 1);
@@ -146,6 +160,8 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_node_to_string(node, coding, &position);
         __assert__(err);
 
+        printf("%d\t len - %d | ", (int)index, (int)strlen((char*)coding));
+
         // Create mapping element and inialize it with coding string.
         err = huf_symbol_mapping_element_init(&element, coding, position);
         __assert__(err);
@@ -154,7 +170,7 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_symbol_mapping_insert(self->mapping, index, element);
         __assert__(err);
 
-        printf("%d\t%s\n", index, self->mapping->symbols[index]->coding);
+        printf("%d\t%s\n", (int)index, self->mapping->symbols[index]->coding);
     }
 
     __finally__;
@@ -181,8 +197,11 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
         err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
         __assert__(err);
 
+        printf("ELEMENT (%d) - %s\n", (int) buf[pos], (char*)element->coding);
+
         for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
+            printf("    index = %d\n", (int) index);
             huf_bit_write(&self->bit_writer, element->coding[index - 1]);
 
             if (self->bit_writer.offset) {
@@ -399,6 +418,9 @@ huf_encode(const huf_encoder_config_t *config)
         if (!left_to_read) {
             continue;
         }
+
+        err = huf_tree_reset(self->huffman_tree);
+        __assert__(err);
 
         err = huf_histogram_reset(self->histogram);
         __assert__(err);

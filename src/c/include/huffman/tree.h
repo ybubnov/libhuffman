@@ -46,6 +46,10 @@ huf_tree_free(huf_tree_t **self);
 
 
 huf_error_t
+huf_tree_reset(huf_tree_t *self);
+
+
+huf_error_t
 huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len);
 
 

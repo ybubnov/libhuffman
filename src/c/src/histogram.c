@@ -85,6 +85,9 @@ huf_histogram_populate(huf_histogram_t *self, void *buf, size_t len)
 
     // Calculate frequencies of the symbols.
     while (buf_ptr + self->iota < buf_end) {
+        // Reset the destination variable.
+        element = 0;
+
         // Read the next element into 64 bit variable.
         memcpy(&element, buf_ptr, self->iota);
 

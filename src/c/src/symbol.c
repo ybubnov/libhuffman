@@ -71,6 +71,8 @@ huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
     err = huf_malloc((void**) &self_ptr->symbols, sizeof(huf_symbol_mapping_element_t), length);
     __assert__(err);
 
+    self_ptr->length = length;
+
     __finally__;
     __end__;
 }

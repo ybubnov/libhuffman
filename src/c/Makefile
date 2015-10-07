@@ -15,7 +15,7 @@ WARNING += -Wpedantic
 WARNING += -Werror
 WARNING += -Wunused
 
-CFLAGS  := $(WARNING) -O2 $(INCLUDE) -std=c99 -g
+CFLAGS  := $(WARNING) $(INCLUDE) -std=c99 -g
 
 # Object file names
 OBJECTS := $(wildcard $(SOURCE))

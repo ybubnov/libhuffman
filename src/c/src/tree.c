@@ -98,10 +98,25 @@ huf_tree_free(huf_tree_t **self)
     __huf_tree_free(self_ptr->root);
 
     free(self_ptr->leaves);
-    free(self_ptr->root);
     free(self_ptr);
 
     *self = NULL;
+
+    __finally__;
+    __end__;
+}
+
+
+huf_error_t
+huf_tree_reset(huf_tree_t *self)
+{
+    __try__;
+
+    __argument__(self);
+
+    __huf_tree_free(self->root);
+
+    self->root = NULL;
 
     __finally__;
     __end__;
