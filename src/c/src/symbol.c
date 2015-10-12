@@ -68,7 +68,7 @@ huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) &self_ptr->symbols, sizeof(huf_symbol_mapping_element_t), length);
+    err = huf_malloc((void**) &self_ptr->symbols, sizeof(huf_symbol_mapping_element_t*), length);
     __assert__(err);
 
     self_ptr->length = length;
@@ -99,6 +99,8 @@ __huf_symbol_mapping_free(huf_symbol_mapping_t *self)
 
         err = huf_symbol_mapping_element_free(&element);
         __assert__(err);
+
+        self->symbols[index] = NULL;
     }
 
     __finally__;
@@ -145,6 +147,8 @@ huf_symbol_mapping_insert(huf_symbol_mapping_t *self, size_t position, huf_symbo
     __inrange__(position, 0, self->length - 1);
 
     previous_element = self->symbols[position];
+
+    printf("  INSERT POS = %d ", (int)position);
 
     if (previous_element) {
         err = huf_symbol_mapping_element_free(&previous_element);

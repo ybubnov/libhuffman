@@ -35,10 +35,6 @@ __huf_create_tree_by_histogram(huf_encoder_t *self)
     start = self->histogram->start;
     rates = self->histogram->frequencies;
 
-    for (int x = 0; x < self->histogram->length; x++) {
-        printf("FREQ - %lld\n", (long long int)self->histogram->frequencies[x]);
-    }
-
     while (start < 512) {
         index1 = index2 = -1;
         rate1 = rate2 = 0;
@@ -170,7 +166,7 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_symbol_mapping_insert(self->mapping, index, element);
         __assert__(err);
 
-        printf("%d\t%s\n", (int)index, self->mapping->symbols[index]->coding);
+        printf("%d\t%s (%p)\n", (int)index, self->mapping->symbols[index]->coding, (void*)self->mapping->symbols[index]);
     }
 
     __finally__;
@@ -197,11 +193,8 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
         err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
         __assert__(err);
 
-        printf("ELEMENT (%d) - %s\n", (int) buf[pos], (char*)element->coding);
-
         for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
-            printf("    index = %d\n", (int) index);
             huf_bit_write(&self->bit_writer, element->coding[index - 1]);
 
             if (self->bit_writer.offset) {
@@ -371,7 +364,7 @@ huf_encode(const huf_encoder_config_t *config)
     while (left_to_read) {
         need_to_read = self->config->chunk_size;
 
-        if (left_to_read - need_to_read < 0) {
+        if (left_to_read < need_to_read) {
             need_to_read = left_to_read;
         }
 
@@ -379,7 +372,7 @@ huf_encode(const huf_encoder_config_t *config)
         err = huf_bufio_read(self->bufio_reader, buf, need_to_read);
         __assert__(err);
 
-        err = huf_histogram_populate(self->histogram, buf, self->config->chunk_size);
+        err = huf_histogram_populate(self->histogram, buf, need_to_read);
         __assert__(err);
 
         err = __huf_create_tree_by_histogram(self);

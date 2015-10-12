@@ -63,9 +63,9 @@ int main(int argc, char **argv)
         .reader = reader,
         .writer = writer,
         .length = st.st_size,
-        .chunk_size = __64KIB_BUFFER,
-        .reader_buffer_size = __128KIB_BUFFER,
-        .writer_buffer_size = __128KIB_BUFFER,
+        .chunk_size = __512KIB_BUFFER,
+        .reader_buffer_size = __1MIB_BUFFER,
+        .writer_buffer_size = __1MIB_BUFFER,
     };
 
     err = huf_encode(&encoder_config);

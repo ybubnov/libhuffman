@@ -235,7 +235,7 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
     }
 
     // If there is still data required to read and it is larger than
-    // buffer capacity, the just read it directly to the destination buffer.
+    // buffer capacity, then just read it directly to the destination buffer.
     if (len >= self->capacity) {
         err = huf_read(self->read_writer->reader, buf_ptr, &len);
         __assert__(err);

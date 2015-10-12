@@ -75,11 +75,13 @@ __huf_tree_free(huf_node_t* node)
     if (node->left) {
         __huf_tree_free(node->left);
         free(node->left);
+        node->left = NULL;
     }
 
     if (node->right) {
         __huf_tree_free(node->right);
         free(node->right);
+        node->left = NULL;
     }
 }
 
