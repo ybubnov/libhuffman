@@ -236,7 +236,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
     if (node) {
         *buf = node->index;
 
-        printf("NODE\t%d\n", *buf);
+        /*printf("NODE\t%d\n", *buf);*/
 
         buf_ptr = buf + 1;
 
@@ -250,7 +250,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
 
     } else {
         *buf = __HUFFMAN_LEAF;
-        printf("NODE\t%d\n", *buf);
+        /*printf("NODE\t%d\n", *buf);*/
     }
 
     *len = left_branch_len + right_branch_len + 1;

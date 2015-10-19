@@ -44,7 +44,7 @@ inline void
 huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit)
 {
     self->bits |= (bit & 1) << self->offset;
-    self->offset -= 1 ? self->offset : 0;
+    self->offset -= self->offset ? 1 : 0;
 }
 
 

@@ -156,11 +156,11 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_node_to_string(node, coding, &position);
         __assert__(err);
 
-        printf("%d\t len - %d | ", (int)index, (int)strlen((char*)coding));
-
         // Create mapping element and inialize it with coding string.
         err = huf_symbol_mapping_element_init(&element, coding, position);
         __assert__(err);
+
+        printf("%d\t len - %d == %d | ", (int)index, (int)strlen((char*)coding), (int) position);
 
         // Insert coding element to the symbol-aware position.
         err = huf_symbol_mapping_insert(self->mapping, index, element);
@@ -188,6 +188,8 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
     __argument__(self);
     __argument__(buf);
 
+    printf("POS = %d\n", (int) len);
+
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
         err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
@@ -201,7 +203,7 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
                 continue;
             }
 
-            // If buffer is full, the dump it to the writer buffer.
+            // If buffer is full, then dump it to the writer buffer.
             err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
             __assert__(err);
 
@@ -401,6 +403,9 @@ huf_encode(const huf_encoder_config_t *config)
         err = huf_bufio_write(self->bufio_writer, tree_head, tree_length * sizeof(int16_t));
         __assert__(err);
 
+        printf("AFTER TREE WRITE = %lld\n", (long long) self->bufio_writer->length);
+        printf("NEED TO READ = %lld\n", (long long) need_to_read);
+
         // Write data
         err = __huf_encode_partial(self, buf, need_to_read);
         __assert__(err);
@@ -421,6 +426,9 @@ huf_encode(const huf_encoder_config_t *config)
         err = huf_symbol_mapping_reset(self->mapping);
         __assert__(err);
     }
+
+    printf("HAVE WRITTEN = %lld\n", (long long)self->bufio_writer->have_been_processed);
+    printf("LENGTH = %lld\n", (long long)self->bufio_writer->length);
 
     err = __huf_encode_flush(self);
     __assert__(err);

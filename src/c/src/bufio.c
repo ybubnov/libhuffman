@@ -72,6 +72,8 @@ huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
         __success__;
     }
 
+    printf("FLUSHING BYTES = %lld\n", (long long) self->length);
+
     err = huf_write(self->read_writer->writer, self->bytes, self->length);
     __assert__(err);
 
@@ -91,6 +93,8 @@ __huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
     huf_error_t err;
 
     __argument__(self);
+
+    /*printf("FLUSH LENGTH = %lld\n", (long long) self->length);*/
 
     // Flush buffer if it is full.
     if (self->length >= self->capacity) {
