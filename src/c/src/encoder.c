@@ -440,6 +440,7 @@ huf_encode(const huf_encoder_config_t *config)
     __finally__;
 
     huf_encoder_free(&self);
+    free(buf);
 
     __end__;
 }

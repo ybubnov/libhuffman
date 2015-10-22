@@ -99,6 +99,7 @@ huf_tree_free(huf_tree_t **self)
 
     __huf_tree_free(self_ptr->root);
 
+    free(self_ptr->root);
     free(self_ptr->leaves);
     free(self_ptr);
 

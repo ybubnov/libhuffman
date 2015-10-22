@@ -5,8 +5,6 @@
 #include "huffman/sys.h"
 
 
-#if 0
-
 static huf_error_t
 __huf_decode_partial(huf_decoder_t *self, const uint8_t *buf, size_t len)
 {
@@ -196,5 +194,3 @@ huf_decode(huf_reader_t reader, huf_writer_t writer, uint64_t len)
 
     __end__;
 }
-
-#endif
