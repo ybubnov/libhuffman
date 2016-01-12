@@ -13,7 +13,7 @@
 
 typedef struct __huf_encoder {
     // Read-only field with encoder configuration.
-    huf_encoder_config_t *config;
+    huf_config_t *config;
 
     // Bit buffer.
     huf_bit_read_writer_t bit_writer;
@@ -43,7 +43,7 @@ typedef struct __huf_encoder {
 // Function huf_encoder_init creates a new context for huffman compressor.
 // Created instance should be deleted with huf_encoder_free.
 huf_error_t
-huf_encoder_init(huf_encoder_t **self, const huf_encoder_config_t *config);
+huf_encoder_init(huf_encoder_t **self, const huf_config_t *config);
 
 
 // Function huf_encoder_free releases allocated memory.
@@ -54,7 +54,7 @@ huf_encoder_free(huf_encoder_t **self);
 // Function huf_encode compresses data of specifiled length from the
 // reader and writes it into the writer.
 huf_error_t
-huf_encode(const huf_encoder_config_t *config);
+huf_encode(const huf_config_t *config);
 
 
 #endif // INCLUDE_huffman_encode_h__

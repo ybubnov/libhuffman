@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (strcmp(argv[1], "-c")) {
+    if (strcmp(argv[1], "-c") && strcmp(argv[1], "-x")) {
         fprintf(stderr, "Usage: [-c] [-x] IFILENAME OFILENAME\n");
         return -1;
     }
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
     __debug__("Opened a writer\n");
 
-    huf_encoder_config_t encoder_config = {
+    huf_config_t config = {
         .reader = reader,
         .writer = writer,
         .length = st.st_size,
@@ -68,7 +68,11 @@ int main(int argc, char **argv)
         .writer_buffer_size = __1MIB_BUFFER,
     };
 
-    err = huf_encode(&encoder_config);
+    if (!strcmp(argv[1], "-c")) {
+        err = huf_encode(&config);
+    } else {
+        err = huf_decode(&config);
+    }
 
     if (err != HUF_ERROR_SUCCESS) {
         fprintf(stderr, "%s\n", huf_err_string(err));
