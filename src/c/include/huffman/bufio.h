@@ -43,8 +43,8 @@ typedef struct __huf_bit_read_writer {
 inline void
 huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit)
 {
-    self->bits |= (bit & 1) << self->offset;
     self->offset -= self->offset ? 1 : 0;
+    self->bits |= (bit & 1) << self->offset;
 }
 
 
@@ -52,7 +52,7 @@ inline void
 huf_bit_read_writer_reset(huf_bit_read_writer_t *self)
 {
     self->bits = 0;
-    self->offset = 7;
+    self->offset = 8;
 }
 
 
@@ -74,6 +74,10 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t size);
 
 huf_error_t
 huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t size);
+
+
+huf_error_t
+huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte);
 
 
 huf_error_t

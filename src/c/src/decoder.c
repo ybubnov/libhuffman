@@ -7,7 +7,7 @@
 
 
 static huf_error_t
-__huf_decode_partial(huf_decoder_t *self, const uint8_t *buf, size_t len)
+__huf_decode_chunk(huf_decoder_t *self, size_t len)
 {
     __try__;
 
@@ -16,18 +16,18 @@ __huf_decode_partial(huf_decoder_t *self, const uint8_t *buf, size_t len)
     uint8_t byte;
     uint8_t bit_offset;
 
-    size_t position;
+    size_t restored = 0;
 
     __argument__(self);
-    __argument__(buf);
 
     if (!self->last_node) {
         self->last_node = self->huffman_tree->root;
     }
 
-    for (position = 0; position < len; position++) {
+    while (restored < len) {
         // Read the next chunk of bit stream.
-        byte = buf[position];
+        err = huf_bufio_read_uint8(self->bufio_reader, &byte);
+        __assert__(err);
 
         for (bit_offset = 8; bit_offset > 0; bit_offset--) {
             // If next bit equals to 1, then move to the right branch.
@@ -47,10 +47,18 @@ __huf_decode_partial(huf_decoder_t *self, const uint8_t *buf, size_t len)
                     self->last_node->index);
             __assert__(err);
 
+            restored++;
+
             // Reset last node value to tree root.
             self->last_node = self->huffman_tree->root;
         }
+
+        if (restored == len) {
+            printf("the last byte = %x\n", byte);
+        }
     }
+
+    printf("restored = %d\n", (int)restored);
 
     __finally__;
     __end__;
@@ -167,9 +175,13 @@ huf_decode(const huf_config_t *config)
     size_t need_to_read;
 
     while (left_to_read > 0) {
-        // Read the length of the next chunk.
+        // Read the length of the next chunk (the original length of
+        // encoded bytes).
         err = huf_bufio_read(self->bufio_reader,
                 &self->config->chunk_size, sizeof(uint64_t));
+        __assert__(err);
+
+        printf("chunk size = %lld\n", (long long) self->config->chunk_size);
         __assert__(err);
 
         // Read the length of the serialized Huffman tree.
@@ -182,6 +194,8 @@ huf_decode(const huf_config_t *config)
                 sizeof(int16_t), tree_length);
         __assert__(err);
 
+        printf("bufio read %p %p %lld\n", (void*)self->bufio_reader, (void*)tree_head, (long long)tree_length);
+
         // Read serialized huffman tree.
         err = huf_bufio_read(self->bufio_reader, tree_head,
                 tree_length * sizeof(int16_t));
@@ -192,6 +206,8 @@ huf_decode(const huf_config_t *config)
                 tree_head, tree_length);
         __assert__(err);
 
+        huf_show_tree(self->huffman_tree->root, 1);
+
         left_to_read -= self->bufio_reader->have_been_processed;
         need_to_read = self->config->chunk_size;
 
@@ -199,25 +215,22 @@ huf_decode(const huf_config_t *config)
             need_to_read = left_to_read;
         }
 
-        err = huf_malloc((void**) &buf, sizeof(uint8_t),
-                self->config->chunk_size);
-        printf("chunk size = %lld\n", (long long) self->config->chunk_size);
-        __assert__(err);
-
-        err = huf_bufio_read(self->bufio_reader, buf, need_to_read);
-        __assert__(err);
-
         __debug__("HERE\n");
 
-        err = __huf_decode_partial(self, buf, need_to_read);
+        err = __huf_decode_chunk(self, need_to_read);
         __assert__(err);
 
-        __debug__("partial\n");
+        huf_bufio_read_writer_flush(self->bufio_writer);
+        __assert__(err);
+
+        __debug__("chunk\n");
 
         left_to_read -= need_to_read;
 
         err = huf_tree_reset(self->huffman_tree);
         __assert__(err);
+
+        self->last_node = NULL;
 
         // TODO: make an optimization to reduce allocations.
         free(tree_head);

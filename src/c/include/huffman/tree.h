@@ -57,4 +57,8 @@ huf_error_t
 huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len);
 
 
+void
+huf_show_tree(huf_node_t *node, int spaces);
+
+
 #endif // INCLUDE_huffman_tree_h__

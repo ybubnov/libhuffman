@@ -177,7 +177,7 @@ __huf_create_char_coding(huf_encoder_t *self)
 
 
 static huf_error_t
-__huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
+__huf_encode_chunk(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
 {
     __try__;
 
@@ -189,8 +189,6 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
 
     __argument__(self);
     __argument__(buf);
-
-    /*printf("POS = %d\n", (int) len);*/
 
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
@@ -214,26 +212,14 @@ __huf_encode_partial(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
         }
     }
 
-    __finally__;
-    __end__;
-}
-
-
-static huf_error_t
-__huf_encode_flush(huf_encoder_t *self)
-{
-    __try__;
-
-    huf_error_t err;
-
-    __argument__(self);
-
-    if (self->bit_writer.offset != 7) {
+    if (self->bit_writer.offset != 8) {
         printf("FLUSH\t=>\t%x\n", self->bit_writer.bits);
 
-        err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
+        err = huf_bufio_write_uint8(self->bufio_writer,
+                self->bit_writer.bits);
         __assert__(err);
     }
+
 
     __finally__;
     __end__;
@@ -348,35 +334,6 @@ huf_encoder_free(huf_encoder_t **self)
 }
 
 
-
-static void
-__show_tree(huf_node_t *node, int spaces);
-
-static void
-__show_tree(huf_node_t *node, int spaces)
-{
-    char *buf = calloc(spaces+1, sizeof(char));
-    memset(buf, 45, sizeof(char) * spaces);
-
-    if (node) {
-        printf("%s%d\n", buf, node->index);
-    } else {
-        printf("%s%d\n", buf, 0);
-    }
-
-    free(buf);
-    if (!node) {
-        return;
-    }
-
-    spaces += 2;
-
-    printf("(l %d) ", spaces);
-    __show_tree(node->left, spaces);
-    printf("(r %d) ", spaces);
-    __show_tree(node->right, spaces);
-}
-
 huf_error_t
 huf_encode(const huf_config_t *config)
 {
@@ -401,6 +358,8 @@ huf_encode(const huf_config_t *config)
     size_t left_to_read = self->config->length;
     size_t need_to_read;
 
+    size_t index = 0;
+
     while (left_to_read > 0) {
         need_to_read = self->config->chunk_size;
 
@@ -422,7 +381,7 @@ huf_encode(const huf_config_t *config)
         __assert__(err);
 
         printf("ROOT %d\n", self->huffman_tree->root->index);
-        __show_tree(self->huffman_tree->root, 1);
+        huf_show_tree(self->huffman_tree->root, 1);
 
         // Write serialized tree into buffer.
         err = huf_tree_serialize(self->huffman_tree,
@@ -450,8 +409,16 @@ huf_encode(const huf_config_t *config)
         printf("NEED TO READ = %lld\n", (long long) need_to_read);
 
         // Write data
-        err = __huf_encode_partial(self, buf, need_to_read);
+        err = __huf_encode_chunk(self, buf, need_to_read);
         __assert__(err);
+
+        char filename[64] = {0};
+        sprintf(filename, "chunk-%d.txt", (int)index);
+        FILE *file = fopen(filename, "w");
+        fwrite(self->bufio_writer->bytes, self->bufio_writer->length, sizeof(uint8_t), file);
+        fclose(file);
+
+        index++;
 
         left_to_read -= need_to_read;
 
@@ -472,9 +439,6 @@ huf_encode(const huf_config_t *config)
 
     printf("HAVE WRITTEN = %lld\n", (long long)self->bufio_writer->have_been_processed);
     printf("LENGTH = %lld\n", (long long)self->bufio_writer->length);
-
-    err = __huf_encode_flush(self);
-    __assert__(err);
 
     // Flush buffer to the file.
     err = huf_bufio_read_writer_flush(self->bufio_writer);

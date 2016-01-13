@@ -11,7 +11,7 @@ huf_malloc(void** ptr, size_t size, size_t num)
     __argument__(ptr);
 
     *ptr = calloc(num, size);
-    if (!ptr) {
+    if (!*ptr) {
         __raise__(HUF_ERROR_MEMORY_ALLOCATION);
     }
 

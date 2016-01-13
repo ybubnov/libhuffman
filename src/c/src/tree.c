@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "huffman/tree.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
@@ -277,4 +279,30 @@ huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
 
     __finally__;
     __end__;
+}
+
+
+void
+huf_show_tree(huf_node_t *node, int spaces)
+{
+    char *buf = calloc(spaces+1, sizeof(char));
+    memset(buf, 45, sizeof(char) * spaces);
+
+    if (node) {
+        printf("%s%d\n", buf, node->index);
+    } else {
+        printf("%s%d\n", buf, 0);
+    }
+
+    free(buf);
+    if (!node) {
+        return;
+    }
+
+    spaces += 2;
+
+    printf("(l %d) ", spaces);
+    huf_show_tree(node->left, spaces);
+    printf("(r %d) ", spaces);
+    huf_show_tree(node->right, spaces);
 }

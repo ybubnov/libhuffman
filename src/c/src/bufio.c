@@ -171,6 +171,24 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 
 
 huf_error_t
+huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte)
+{
+    __try__;
+
+    huf_error_t err;
+
+    __argument__(self);
+    __argument__(byte);
+
+    err = huf_bufio_read(self, byte, sizeof(*byte));
+    __assert__(err);
+
+    __finally__;
+    __end__;
+}
+
+
+huf_error_t
 huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
 {
     __try__;
