@@ -162,8 +162,6 @@ huf_decode(const huf_config_t *config)
 
     huf_error_t err;
 
-    uint8_t *buf = NULL;
-
     int16_t *tree_head = NULL;
     int16_t tree_length = 0;
 
@@ -201,6 +199,15 @@ huf_decode(const huf_config_t *config)
                 tree_length * sizeof(int16_t));
         __assert__(err);
 
+        printf("after tree read: %d\n", (int)self->bufio_reader->offset);
+
+        uint64_t filler;
+        huf_bufio_read(self->bufio_reader, &filler, sizeof(uint64_t));
+
+        printf("filler content: %lld\n", (long long)filler);
+
+        break;
+
         // Create linked tree strcuture.
         err = huf_tree_deserialize(self->huffman_tree,
                 tree_head, tree_length);
@@ -236,8 +243,7 @@ huf_decode(const huf_config_t *config)
         free(tree_head);
         tree_head = NULL;
 
-        free(buf);
-        buf = NULL;
+        break;
     }
 
     __debug__("EXIT\n");

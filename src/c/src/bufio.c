@@ -180,7 +180,7 @@ huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte)
     __argument__(self);
     __argument__(byte);
 
-    err = huf_bufio_read(self, byte, sizeof(*byte));
+    err = huf_bufio_read(self, byte, sizeof(uint8_t));
     __assert__(err);
 
     __finally__;

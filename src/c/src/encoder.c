@@ -408,6 +408,11 @@ huf_encode(const huf_config_t *config)
         printf("AFTER TREE WRITE = %lld\n", (long long) self->bufio_writer->length);
         printf("NEED TO READ = %lld\n", (long long) need_to_read);
 
+        uint64_t filler = 0;
+        huf_bufio_write(self->bufio_writer, &filler, sizeof(uint64_t));
+
+        break;
+
         // Write data
         err = __huf_encode_chunk(self, buf, need_to_read);
         __assert__(err);
@@ -435,6 +440,8 @@ huf_encode(const huf_config_t *config)
 
         err = huf_symbol_mapping_reset(self->mapping);
         __assert__(err);
+
+        break;
     }
 
     printf("HAVE WRITTEN = %lld\n", (long long)self->bufio_writer->have_been_processed);

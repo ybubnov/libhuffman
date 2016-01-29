@@ -1,11 +1,8 @@
 .PHONY: all, clean
 
 NAME    := hrc
-
 BUILD   := build
-
 INCLUDE := -Iinclude
-INCLUDE += -Iinclude/runtime
 
 SOURCE  := src/*.c
 SOURCE  += src/huffman/*.c
