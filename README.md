@@ -7,13 +7,13 @@ The implementation of this library is pretty straightforward, additional informa
 
 The build mechanism of the library is based on the [scons](http://scons.org/) tool, so you could easily install it on your distribution in the following way:
 ```bash
-# scons install
+$ sudo scons install
 ```
 
 By default the command above install the library into ```/usr/local/lib``` and all required headers into ```/usr/local/include```.
 To remove the installed library, you could type the following command:
 ```bash
-# scons uninstall
+$ sudo scons uninstall
 ```
 
 ## Usage
