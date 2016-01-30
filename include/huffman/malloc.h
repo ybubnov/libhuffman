@@ -5,6 +5,7 @@
 #include "huffman/errors.h"
 
 
+// Allocate the memory block of the specified size.
 huf_error_t
 huf_malloc(void** ptr, size_t size, size_t num);
 
