@@ -162,13 +162,9 @@ __huf_create_char_coding(huf_encoder_t *self)
         err = huf_symbol_mapping_element_init(&element, coding, position);
         __assert__(err);
 
-        printf("%d\t len - %d == %d | ", (int)index, (int)strlen((char*)coding), (int) position);
-
         // Insert coding element to the symbol-aware position.
         err = huf_symbol_mapping_insert(self->mapping, index, element);
         __assert__(err);
-
-        printf("%d\t%s (%p)\n", (int)index, self->mapping->symbols[index]->coding, (void*)self->mapping->symbols[index]);
     }
 
     __finally__;
@@ -192,12 +188,14 @@ __huf_encode_chunk(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
 
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
-        err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
+        err = huf_symbol_mapping_get(self->mapping,
+                buf[pos], &element);
         __assert__(err);
 
         for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
-            huf_bit_write(&self->bit_writer, element->coding[index - 1]);
+            huf_bit_write(&self->bit_writer,
+                    element->coding[index - 1]);
 
             if (self->bit_writer.offset) {
                 continue;
@@ -213,8 +211,6 @@ __huf_encode_chunk(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
     }
 
     if (self->bit_writer.offset != 8) {
-        printf("FLUSH\t=>\t%x\n", self->bit_writer.bits);
-
         err = huf_bufio_write_uint8(self->bufio_writer,
                 self->bit_writer.bits);
         __assert__(err);
@@ -358,8 +354,6 @@ huf_encode(const huf_config_t *config)
     size_t left_to_read = self->config->length;
     size_t need_to_read;
 
-    size_t index = 0;
-
     while (left_to_read > 0) {
         need_to_read = self->config->chunk_size;
 
@@ -379,9 +373,6 @@ huf_encode(const huf_config_t *config)
 
         err = __huf_create_char_coding(self);
         __assert__(err);
-
-        printf("ROOT %d\n", self->huffman_tree->root->index);
-        huf_show_tree(self->huffman_tree->root, 1);
 
         // Write serialized tree into buffer.
         err = huf_tree_serialize(self->huffman_tree,
@@ -405,25 +396,12 @@ huf_encode(const huf_config_t *config)
                 tree_length * sizeof(int16_t));
         __assert__(err);
 
-        printf("AFTER TREE WRITE = %lld\n", (long long) self->bufio_writer->length);
-        printf("NEED TO READ = %lld\n", (long long) need_to_read);
-
-        uint64_t filler = 0;
-        huf_bufio_write(self->bufio_writer, &filler, sizeof(uint64_t));
-
-        break;
+        // Reset the bit writer before encoging the next chunk of data.
+        huf_bit_read_writer_reset(&self->bit_writer);
 
         // Write data
         err = __huf_encode_chunk(self, buf, need_to_read);
         __assert__(err);
-
-        char filename[64] = {0};
-        sprintf(filename, "chunk-%d.txt", (int)index);
-        FILE *file = fopen(filename, "w");
-        fwrite(self->bufio_writer->bytes, self->bufio_writer->length, sizeof(uint8_t), file);
-        fclose(file);
-
-        index++;
 
         left_to_read -= need_to_read;
 
@@ -440,12 +418,7 @@ huf_encode(const huf_config_t *config)
 
         err = huf_symbol_mapping_reset(self->mapping);
         __assert__(err);
-
-        break;
     }
-
-    printf("HAVE WRITTEN = %lld\n", (long long)self->bufio_writer->have_been_processed);
-    printf("LENGTH = %lld\n", (long long)self->bufio_writer->length);
 
     // Flush buffer to the file.
     err = huf_bufio_read_writer_flush(self->bufio_writer);

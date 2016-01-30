@@ -239,8 +239,6 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
     if (node) {
         *buf = node->index;
 
-        /*printf("NODE\t%d\n", *buf);*/
-
         buf_ptr = buf + 1;
 
         err = __huf_serialize_tree(node->left, buf_ptr, &left_branch_len);
@@ -253,7 +251,6 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
 
     } else {
         *buf = __HUFFMAN_LEAF;
-        /*printf("NODE\t%d\n", *buf);*/
     }
 
     *len = left_branch_len + right_branch_len + 1;
@@ -279,30 +276,4 @@ huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
 
     __finally__;
     __end__;
-}
-
-
-void
-huf_show_tree(huf_node_t *node, int spaces)
-{
-    char *buf = calloc(spaces+1, sizeof(char));
-    memset(buf, 45, sizeof(char) * spaces);
-
-    if (node) {
-        printf("%s%d\n", buf, node->index);
-    } else {
-        printf("%s%d\n", buf, 0);
-    }
-
-    free(buf);
-    if (!node) {
-        return;
-    }
-
-    spaces += 2;
-
-    printf("(l %d) ", spaces);
-    huf_show_tree(node->left, spaces);
-    printf("(r %d) ", spaces);
-    huf_show_tree(node->right, spaces);
 }

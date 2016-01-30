@@ -148,8 +148,6 @@ huf_symbol_mapping_insert(huf_symbol_mapping_t *self, size_t position, huf_symbo
 
     previous_element = self->symbols[position];
 
-    printf("  INSERT POS = %d ", (int)position);
-
     if (previous_element) {
         err = huf_symbol_mapping_element_free(&previous_element);
         __assert__(err);
