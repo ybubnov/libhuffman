@@ -5,8 +5,13 @@
 #include "huffman/sys.h"
 
 
+// Write the path to the root node of the Huffman
+// tree starting from the specified node into the
+// buffer.
 huf_error_t
-huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
+huf_node_to_string(
+        const huf_node_t *self,
+        uint8_t *buf, size_t *len)
 {
     __try__;
 
@@ -44,6 +49,7 @@ huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
 }
 
 
+// Initialize a new instance of the Huffman tree.
 huf_error_t
 huf_tree_init(huf_tree_t **self)
 {
@@ -54,12 +60,14 @@ huf_tree_init(huf_tree_t **self)
 
     __argument__(self);
 
-    err = huf_malloc((void**) self, sizeof(huf_tree_t), 1);
+    err = huf_malloc(void_pptr_m(self),
+            sizeof(huf_tree_t), 1);
     __assert__(err);
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) &self_ptr->leaves, sizeof(huf_node_t*), __HUFFMAN_ASCII_SYMBOLS * 2);
+    err = huf_malloc(void_pptr_m(&self_ptr->leaves),
+            sizeof(huf_node_t*), __HUFFMAN_ASCII_SYMBOLS * 2);
     __assert__(err);
 
     __finally__;
@@ -67,6 +75,7 @@ huf_tree_init(huf_tree_t **self)
 }
 
 
+// Release memory occupied by the Huffman nodes.
 static void
 __huf_tree_free(huf_node_t* node)
 {
@@ -88,6 +97,7 @@ __huf_tree_free(huf_node_t* node)
 }
 
 
+// Release memory occupied by the Huffman tree.
 huf_error_t
 huf_tree_free(huf_tree_t **self)
 {
@@ -112,6 +122,8 @@ huf_tree_free(huf_tree_t **self)
 }
 
 
+// Release the memory occupied by the Huffman
+// tree nodes.
 huf_error_t
 huf_tree_reset(huf_tree_t *self)
 {
@@ -128,8 +140,12 @@ huf_tree_reset(huf_tree_t *self)
 }
 
 
+// Recursively de-serialize the Huffman tree into the
+// provided buffer.
 static huf_error_t
-__huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
+__huf_deserialize_tree(
+        huf_node_t **node,
+        const int16_t *buf, size_t *len)
 {
     __try__;
 
@@ -172,7 +188,8 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
         __raise__(HUF_ERROR_SUCCESS);
     }
 
-    err = huf_malloc((void**) &node_ptr, sizeof(huf_node_t), 1);
+    err = huf_malloc(void_pptr_m(&node_ptr),
+            sizeof(huf_node_t), 1);
     __assert__(err);
 
     *node = node_ptr;
@@ -183,20 +200,24 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
     node_right = &node_ptr->right;
 
     buf_ptr = buf + 1;
-    // Current node is deserialized, so shift pointer to the next one
-    // and reduce overal length of buffer by one.
+    // Current node is de-serialized, so shift pointer to
+    // the next one and reduce overall length of buffer by one.
     left_branch_len = buf_len - 1;
 
-    err = __huf_deserialize_tree(node_left, buf_ptr, &left_branch_len);
+    // Recursively de-serialize a left branch of the tree.
+    err = __huf_deserialize_tree(node_left,
+            buf_ptr, &left_branch_len);
     __assert__(err);
 
     buf_ptr += left_branch_len;
     right_branch_len = buf_len - left_branch_len - 1;
 
-    err = __huf_deserialize_tree(node_right, buf_ptr, &right_branch_len);
+    // Recursively de-serialize a right branch of the tree.
+    err = __huf_deserialize_tree(node_right,
+            buf_ptr, &right_branch_len);
     __assert__(err);
 
-    // Return in len argument length of the read data.
+    // Return in *len* argument length of the read data.
     *len = left_branch_len + right_branch_len + 1;
 
     __finally__;
@@ -204,8 +225,12 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
 }
 
 
+// De-serialize the Huffman tree into the
+// provided buffer.
 huf_error_t
-huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
+huf_tree_deserialize(
+        huf_tree_t *self,
+        const int16_t *buf, size_t len)
 {
     __try__;
 
@@ -214,7 +239,8 @@ huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
     __argument__(self);
     __argument__(buf);
 
-    err = __huf_deserialize_tree(&self->root, buf, &len);
+    err = __huf_deserialize_tree(&self->root,
+            buf, &len);
     __assert__(err);
 
     __finally__;
@@ -222,8 +248,13 @@ huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
 }
 
 
+
+// Recursively serialize the Huffman tree from the
+// provided buffer.
 static huf_error_t
-__huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
+__huf_serialize_tree(
+        const huf_node_t *node,
+        int16_t *buf, size_t *len)
 {
     __try__;
 
@@ -241,12 +272,16 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
 
         buf_ptr = buf + 1;
 
-        err = __huf_serialize_tree(node->left, buf_ptr, &left_branch_len);
+        // Serialize the left branch of the tree.
+        err = __huf_serialize_tree(node->left,
+                buf_ptr, &left_branch_len);
         __assert__(err);
 
         buf_ptr += left_branch_len;
 
-        err = __huf_serialize_tree(node->right, buf_ptr, &right_branch_len);
+        // Serialize the right branch of the tree.
+        err = __huf_serialize_tree(node->right,
+                buf_ptr, &right_branch_len);
         __assert__(err);
 
     } else {
@@ -260,8 +295,12 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
 }
 
 
+// Serialize the Huffman tree from the
+// provided buffer.
 huf_error_t
-huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
+huf_tree_serialize(
+        huf_tree_t *self,
+        int16_t *buf, size_t *len)
 {
     __try__;
 
@@ -271,7 +310,8 @@ huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
     __argument__(buf);
     __argument__(len);
 
-    err = __huf_serialize_tree(self->root, buf, len);
+    err = __huf_serialize_tree(self->root,
+            buf, len);
     __assert__(err);
 
     __finally__;

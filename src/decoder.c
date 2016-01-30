@@ -1,13 +1,39 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "huffman/bufio.h"
 #include "huffman/decoder.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
+#include "huffman/io.h"
+#include "huffman/tree.h"
 
 
+struct __huf_decoder {
+    // Read-only field with decoder configuration.
+    huf_config_t *config;
+
+    // Stores leaves and the root of the Huffman tree.
+    huf_tree_t *huffman_tree;
+
+    // last_node stores pointer of the last decoded byte.
+    huf_node_t *last_node;
+
+    // Read-writer instance.
+    huf_read_writer_t *read_writer;
+
+    // Buffer for write operations.
+    huf_bufio_read_writer_t *bufio_writer;
+
+    // Buffer for read operations.
+    huf_bufio_read_writer_t *bufio_reader;
+};
+
+
+// Decode the chunk of data.
 static huf_error_t
-__huf_decode_chunk(huf_decoder_t *self, size_t len)
+__huf_decode_chunk(
+        huf_decoder_t *self, size_t len)
 {
     __try__;
 
@@ -64,23 +90,28 @@ __huf_decode_chunk(huf_decoder_t *self, size_t len)
 }
 
 
+// Initialize a new instance of the Huffman-decoder.
 huf_error_t
-huf_decoder_init(huf_decoder_t **self, const huf_config_t *config)
+huf_decoder_init(
+        huf_decoder_t **self,
+        const huf_config_t *config)
 {
     __try__;
 
-    huf_error_t err;
     huf_decoder_t *self_ptr = NULL;
     huf_config_t *decoder_config = NULL;
 
     __argument__(self);
     __argument__(config);
 
-    err = huf_malloc((void**) &self_ptr, sizeof(huf_decoder_t), 1);
+    // Allocate memory for a new decoder instance.
+    huf_error_t err = huf_malloc(void_pptr_m(&self_ptr),
+            sizeof(huf_decoder_t), 1);
     __assert__(err);
 
     *self = self_ptr;
 
+    // Create a new instance of the decoder configuration.
     err = huf_config_init(&decoder_config);
     __assert__(err);
 
@@ -99,16 +130,20 @@ huf_decoder_init(huf_decoder_t **self, const huf_config_t *config)
     // }
     __assert__(err);
 
-    // Create buffered writer instance. If writer buffer size set to zero,
-    // the 64 KiB buffer will be used by default.
+    // Create buffered writer instance. If writer buffer
+    // size set to zero, the 64 KiB buffer will be used
+    // by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_writer,
-            self_ptr->read_writer, self_ptr->config->writer_buffer_size);
+            self_ptr->read_writer,
+            self_ptr->config->writer_buffer_size);
     __assert__(err);
 
-    // Create buffered reader instance. If reader buffer size set to zero,
-    // the 64 KiB buffer will be used by default.
+    // Create buffered reader instance. If reader buffer
+    // size set to zero, the 64 KiB buffer will be used
+    // by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_reader,
-            self_ptr->read_writer, self_ptr->config->reader_buffer_size);
+            self_ptr->read_writer,
+            self_ptr->config->reader_buffer_size);
     __assert__(err);
 
     __finally__;
@@ -116,6 +151,7 @@ huf_decoder_init(huf_decoder_t **self, const huf_config_t *config)
 }
 
 
+// Release memory occupied by the Huffman-decoder.
 huf_error_t
 huf_decoder_free(huf_decoder_t **self)
 {
@@ -131,16 +167,20 @@ huf_decoder_free(huf_decoder_t **self)
     err = huf_tree_free(&self_ptr->huffman_tree);
     __assert__(err);
 
-    err = huf_bufio_read_writer_free(&self_ptr->bufio_writer);
+    err = huf_bufio_read_writer_free(
+            &self_ptr->bufio_writer);
     __assert__(err);
 
-    err = huf_bufio_read_writer_free(&self_ptr->bufio_reader);
+    err = huf_bufio_read_writer_free(
+            &self_ptr->bufio_reader);
     __assert__(err);
 
-    err = huf_read_writer_free(&self_ptr->read_writer);
+    err = huf_read_writer_free(
+            &self_ptr->read_writer);
     __assert__(err);
 
-    err = huf_config_free(&self_ptr->config);
+    err = huf_config_free(
+            &self_ptr->config);
     __assert__(err);
 
     free(self_ptr);
@@ -152,13 +192,14 @@ huf_decoder_free(huf_decoder_t **self)
 }
 
 
+// Decodes the data according to the provide
+// configuration.
 huf_error_t
 huf_decode(const huf_config_t *config)
 {
     __try__;
 
     huf_decoder_t *self = NULL;
-
     huf_error_t err;
 
     int16_t *tree_head = NULL;
@@ -183,7 +224,7 @@ huf_decode(const huf_config_t *config)
         __assert__(err);
 
         // Allocate memory for serialized Huffman tree.
-        err = huf_malloc((void**) &tree_head,
+        err = huf_malloc(void_pptr_m(&tree_head),
                 sizeof(int16_t), tree_length);
         __assert__(err);
 
@@ -197,8 +238,7 @@ huf_decode(const huf_config_t *config)
                 tree_head, tree_length);
         __assert__(err);
 
-        /*huf_show_tree(self->huffman_tree->root, 1);*/
-
+        // Decode the next chunk of data.
         err = __huf_decode_chunk(self, self->config->chunk_size);
         __assert__(err);
 

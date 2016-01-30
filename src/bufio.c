@@ -5,8 +5,13 @@
 #include "huffman/sys.h"
 
 
+// Initialize a new instance of the read-write buffer
+// with the specified size in bytes.
 huf_error_t
-huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *read_writer, size_t capacity)
+huf_bufio_read_writer_init(
+        huf_bufio_read_writer_t **self,
+        huf_read_writer_t *read_writer,
+        size_t capacity)
 {
     __try__;
 
@@ -15,12 +20,14 @@ huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *re
 
     __argument__(self);
 
-    err = huf_malloc((void**) &self_ptr, sizeof(huf_bufio_read_writer_t), 1);
+    err = huf_malloc(void_pptr_m(&self_ptr),
+            sizeof(huf_bufio_read_writer_t), 1);
     __assert__(err);
 
     *self = self_ptr;
 
-    err = huf_malloc((void**) &self_ptr->bytes, sizeof(uint8_t), capacity);
+    err = huf_malloc(void_pptr_m(&self_ptr->bytes),
+            sizeof(uint8_t), capacity);
     __assert__(err);
 
     // If zero value provided for capacity, then use
@@ -37,8 +44,10 @@ huf_bufio_read_writer_init(huf_bufio_read_writer_t **self, huf_read_writer_t *re
 }
 
 
+// Release memory occupied by the read-write buffer.
 huf_error_t
-huf_bufio_read_writer_free(huf_bufio_read_writer_t **self)
+huf_bufio_read_writer_free(
+        huf_bufio_read_writer_t **self)
 {
     __try__;
 
@@ -58,8 +67,10 @@ huf_bufio_read_writer_free(huf_bufio_read_writer_t **self)
 }
 
 
+// Flush the writer buffer.
 huf_error_t
-huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
+huf_bufio_read_writer_flush(
+        huf_bufio_read_writer_t *self)
 {
     __try__;
 
@@ -72,7 +83,8 @@ huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
         __success__;
     }
 
-    err = huf_write(self->read_writer->writer, self->bytes, self->length);
+    err = huf_write(self->read_writer->writer,
+            self->bytes, self->length);
     __assert__(err);
 
     self->length = 0;
@@ -83,8 +95,10 @@ huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
 }
 
 
+// Flush the content of the writer buffer.
 static huf_error_t
-__huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
+__huf_bufio_read_writer_flush(
+        huf_bufio_read_writer_t *self)
 {
     __try__;
 
@@ -94,7 +108,8 @@ __huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
 
     // Flush buffer if it is full.
     if (self->length >= self->capacity) {
-        err = huf_write(self->read_writer->writer, self->bytes, self->length);
+        err = huf_write(self->read_writer->writer,
+                self->bytes, self->length);
         __assert__(err);
 
         // Renew byte length
@@ -107,35 +122,41 @@ __huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
 }
 
 
+// Write the specified amount of bytes starting from the
+// provided pointer into the writer buffer. If the buffer
+// will be filled during the copying of bytes, it could be
+// flushed.
 huf_error_t
-huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
+huf_bufio_write(
+        huf_bufio_read_writer_t *self,
+        const void *buf,
+        size_t len)
 {
     __try__;
 
     huf_error_t err;
 
-    const uint8_t *buf_ptr;
-    size_t available_to_write;
-
     __argument__(self);
     __argument__(buf);
 
-    buf_ptr = buf;
+    const uint8_t *buf_ptr = buf;
 
     err = __huf_bufio_read_writer_flush(self);
     __assert__(err);
 
-    available_to_write = self->capacity - self->length;
+    size_t available_to_write = self->capacity - self->length;
 
-    // If there is a data in buffer, then copy data from specified buffer
-    // and dump it to writer.
+    // If there is a data in buffer, then copy data from
+    // specified buffer and dump it to writer.
     if (self->length && len >= available_to_write) {
-        memcpy(self->bytes + self->length, buf_ptr, available_to_write);
+        memcpy(self->bytes + self->length,
+                buf_ptr, available_to_write);
 
         // Next call could fail, so increase length of the buffer.
         self->length = self->capacity;
 
-        err = huf_write(self->read_writer->writer, self->bytes, self->capacity);
+        err = huf_write(self->read_writer->writer,
+                self->bytes, self->capacity);
         __assert__(err);
 
         buf_ptr += available_to_write;
@@ -147,7 +168,8 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 
     // All other data dump to writer withot copying into buffer.
     while (len >= self->capacity) {
-        err = huf_write(self->read_writer->writer, buf_ptr, self->capacity);
+        err = huf_write(self->read_writer->writer,
+                buf_ptr, self->capacity);
         __assert__(err);
 
         buf_ptr += self->capacity;
@@ -166,70 +188,30 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 }
 
 
+// Read the specified amount of bytes from the reader buffer
+// starting from the provided pointer.
 huf_error_t
-huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte)
+huf_bufio_read(
+        huf_bufio_read_writer_t *self,
+        void *buf, size_t len)
 {
     __try__;
 
     huf_error_t err;
-
-    __argument__(self);
-    __argument__(byte);
-
-    err = huf_bufio_read(self, byte, sizeof(uint8_t));
-    __assert__(err);
-
-    __finally__;
-    __end__;
-}
-
-
-huf_error_t
-huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
-{
-    __try__;
-
-    huf_error_t err;
-
-    __argument__(self);
-
-    // Flush buffer if it is full.
-    err = __huf_bufio_read_writer_flush(self);
-    __assert__(err);
-
-    // Put byte into the buffer.
-    self->bytes[self->length] = byte;
-    self->length++;
-
-    __finally__;
-    __end__;
-}
-
-
-huf_error_t
-huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
-{
-    __try__;
-
-    huf_error_t err;
-
     uint8_t *buf_ptr = buf;
-
-    size_t len_copy;
-    size_t available_to_read;
-    size_t bytes_to_copy;
 
     __argument__(self);
     __argument__(buf);
 
-    len_copy = len;
+    size_t len_copy = len;
 
     // Get count of available in buffer bytes.
-    available_to_read = self->length - self->offset;
+    size_t available_to_read = self->length - self->offset;
 
-    // If there is a data in buffer, then copy it to destination buffer.
+    // If there is a data in buffer, then copy it to
+    // destination buffer.
     if (available_to_read > 0 && len > 0) {
-        bytes_to_copy = available_to_read;
+        size_t bytes_to_copy = available_to_read;
 
         if (available_to_read > len) {
             bytes_to_copy = len;
@@ -252,8 +234,9 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
         __success__;
     }
 
-    // If there is still data required to read and it is larger than
-    // buffer capacity, then just read it directly to the destination buffer.
+    // If there is still data required to read and it is larger
+    // than buffer capacity, then just read it directly to the
+    // destination buffer.
     if (len >= self->capacity) {
         err = huf_read(self->read_writer->reader, buf_ptr, &len);
         __assert__(err);
@@ -268,9 +251,11 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
     // Try to fill available buffer.
     self->length = self->capacity;
 
-    // In case when buffer size is larger that requested data.
-    // Read bytes into buffer first and then copy bytes to destination.
-    err = huf_read(self->read_writer->reader, self->bytes, &self->length);
+    // In case when buffer size is larger that requested
+    // data. Read bytes into buffer first and then copy
+    // bytes to the destination.
+    err = huf_read(self->read_writer->reader,
+            self->bytes, &self->length);
     __assert__(err);
 
     memcpy(buf_ptr, self->bytes, len);
@@ -285,3 +270,52 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
 
     __end__;
 }
+
+
+// Read the 8-bits word from the reader buffer into the
+// specified pointer.
+huf_error_t
+huf_bufio_read_uint8(
+        huf_bufio_read_writer_t *self,
+        uint8_t *byte)
+{
+    __try__;
+
+    huf_error_t err;
+
+    __argument__(self);
+    __argument__(byte);
+
+    err = huf_bufio_read(self, byte, sizeof(uint8_t));
+    __assert__(err);
+
+    __finally__;
+    __end__;
+}
+
+
+// Write the specified 8-bits word into the writer buffer.
+huf_error_t
+huf_bufio_write_uint8(
+        huf_bufio_read_writer_t *self,
+        uint8_t byte)
+{
+    __try__;
+
+    huf_error_t err;
+
+    __argument__(self);
+
+    // Flush buffer if it is full.
+    err = __huf_bufio_read_writer_flush(self);
+    __assert__(err);
+
+    // Put byte into the buffer.
+    self->bytes[self->length] = byte;
+    self->length++;
+
+    __finally__;
+    __end__;
+}
+
+

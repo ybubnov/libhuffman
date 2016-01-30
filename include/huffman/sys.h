@@ -4,6 +4,10 @@
 
 #include <stdio.h>
 
+
+#define void_pptr_m(pointer) ((void**)(pointer))
+
+
 #define __try__ \
     huf_error_t __error__ = HUF_ERROR_SUCCESS \
 

@@ -5,8 +5,12 @@
 #include "huffman/malloc.h"
 
 
+// Initialize a new instance of the read-writer.
 huf_error_t
-huf_read_writer_init(huf_read_writer_t **self, huf_reader_t reader, huf_writer_t writer)
+huf_read_writer_init(
+        huf_read_writer_t **self,
+        huf_reader_t reader,
+        huf_writer_t writer)
 {
     __try__;
 
@@ -15,7 +19,8 @@ huf_read_writer_init(huf_read_writer_t **self, huf_reader_t reader, huf_writer_t
 
     __argument__(self);
 
-    err = huf_malloc((void**) self, sizeof(huf_read_writer_t), 1);
+    err = huf_malloc(void_pptr_m(self),
+            sizeof(huf_read_writer_t), 1);
     __assert__(err);
 
     self_ptr = *self;
@@ -28,6 +33,7 @@ huf_read_writer_init(huf_read_writer_t **self, huf_reader_t reader, huf_writer_t
 }
 
 
+// Release memory occupied by the read-writer.
 huf_error_t
 huf_read_writer_free(huf_read_writer_t **self)
 {
@@ -44,16 +50,16 @@ huf_read_writer_free(huf_read_writer_t **self)
 }
 
 
+// Write the specified amount of byte from the buffer
+// starting from the *buf* pointer.
 huf_error_t
 huf_write(huf_writer_t writer, const void *buf, size_t count)
 {
     __try__;
 
-    size_t have_written;
-
     __argument__(buf);
 
-    have_written = write(writer, buf, count);
+    size_t have_written = write(writer, buf, count);
     if (have_written < 0) {
         __raise__(HUF_ERROR_READ_WRITE);
     }
@@ -63,17 +69,17 @@ huf_write(huf_writer_t writer, const void *buf, size_t count)
 }
 
 
+// Read the specified amount of bytes into the buffer
+// starting from the *buf* pointer.
 huf_error_t
 huf_read(huf_reader_t reader, void *buf, size_t *count)
 {
     __try__;
 
-    size_t have_read;
-
     __argument__(buf);
     __argument__(count);
 
-    have_read = read(reader, buf, *count);
+    size_t have_read = read(reader, buf, *count);
     if (have_read < 0) {
         *count = 0;
         __raise__(HUF_ERROR_READ_WRITE);

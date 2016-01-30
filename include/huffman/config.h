@@ -30,15 +30,17 @@ typedef struct __huf_encoder_config {
     huf_reader_t reader;
 
     // Instance of the writer which will be used as
-    // a consumer of the huffman-encoded data.
+    // a consumer of the Huffman-encoded data.
     huf_writer_t writer;
 } huf_config_t;
 
 
+// Initialize a new instance of the configuration.
 huf_error_t
 huf_config_init(huf_config_t **self);
 
 
+// Release memory occupied by the configuration.
 huf_error_t
 huf_config_free(huf_config_t **self);
 

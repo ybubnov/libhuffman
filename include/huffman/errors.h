@@ -11,9 +11,8 @@ typedef enum {
 } huf_error_t;
 
 
-/* Function huf_err_string return string representation
- * of the specified error
- */
+// Function huf_err_string return string representation
+// of the specified error.
 const char* huf_err_string(huf_error_t error);
 
 

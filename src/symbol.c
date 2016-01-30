@@ -5,8 +5,13 @@
 #include "huffman/sys.h"
 
 
+// Initialize a new instance of the symbol
+// mapping element.
 huf_error_t
-huf_symbol_mapping_element_init(huf_symbol_mapping_element_t **self, const uint8_t *coding, size_t length)
+huf_symbol_mapping_element_init(
+        huf_symbol_mapping_element_t **self,
+        const uint8_t *coding,
+        size_t length)
 {
     __try__;
 
@@ -16,12 +21,14 @@ huf_symbol_mapping_element_init(huf_symbol_mapping_element_t **self, const uint8
     __argument__(self);
     __argument__(coding);
 
-    err = huf_malloc((void**) self, sizeof(huf_symbol_mapping_element_t), 1);
+    err = huf_malloc(void_pptr_m(self),
+            sizeof(huf_symbol_mapping_element_t), 1);
     __assert__(err);
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) &self_ptr->coding, sizeof(uint8_t), length + 1);
+    err = huf_malloc(void_pptr_m(&self_ptr->coding),
+            sizeof(uint8_t), length + 1);
     __assert__(err);
 
     self_ptr->length = length;
@@ -32,8 +39,11 @@ huf_symbol_mapping_element_init(huf_symbol_mapping_element_t **self, const uint8
 }
 
 
+// Release memory occupied by the symbol
+// mapping element.
 huf_error_t
-huf_symbol_mapping_element_free(huf_symbol_mapping_element_t **self)
+huf_symbol_mapping_element_free(
+        huf_symbol_mapping_element_t **self)
 {
     __try__;
 
@@ -53,8 +63,11 @@ huf_symbol_mapping_element_free(huf_symbol_mapping_element_t **self)
 }
 
 
+// Initialize a new instance of the symbol mapping.
 huf_error_t
-huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
+huf_symbol_mapping_init(
+        huf_symbol_mapping_t **self,
+        size_t length)
 {
     __try__;
 
@@ -63,12 +76,14 @@ huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
 
     __argument__(self);
 
-    err = huf_malloc((void**) self, sizeof(huf_symbol_mapping_t), 1);
+    err = huf_malloc(void_pptr_m(self),
+            sizeof(huf_symbol_mapping_t), 1);
     __assert__(err);
 
     self_ptr = *self;
 
-    err = huf_malloc((void**) &self_ptr->symbols, sizeof(huf_symbol_mapping_element_t*), length);
+    err = huf_malloc(void_pptr_m(&self_ptr->symbols),
+            sizeof(huf_symbol_mapping_element_t*), length);
     __assert__(err);
 
     self_ptr->length = length;
@@ -78,8 +93,10 @@ huf_symbol_mapping_init(huf_symbol_mapping_t **self, size_t length)
 }
 
 
+// Reset memory occipied by the symbol mapping.
 static huf_error_t
-__huf_symbol_mapping_free(huf_symbol_mapping_t *self)
+__huf_symbol_mapping_free(
+        huf_symbol_mapping_t *self)
 {
     __try__;
 
@@ -108,8 +125,10 @@ __huf_symbol_mapping_free(huf_symbol_mapping_t *self)
 }
 
 
+// Release memory occupied by the symbol mapping.
 huf_error_t
-huf_symbol_mapping_free(huf_symbol_mapping_t **self)
+huf_symbol_mapping_free(
+        huf_symbol_mapping_t **self)
 {
     __try__;
 
@@ -133,8 +152,13 @@ huf_symbol_mapping_free(huf_symbol_mapping_t **self)
 }
 
 
+// Insert an element into the symbol mapping by
+// the specified position.
 huf_error_t
-huf_symbol_mapping_insert(huf_symbol_mapping_t *self, size_t position, huf_symbol_mapping_element_t *element)
+huf_symbol_mapping_insert(
+        huf_symbol_mapping_t *self,
+        size_t position,
+        huf_symbol_mapping_element_t *element)
 {
     __try__;
 
@@ -149,7 +173,8 @@ huf_symbol_mapping_insert(huf_symbol_mapping_t *self, size_t position, huf_symbo
     previous_element = self->symbols[position];
 
     if (previous_element) {
-        err = huf_symbol_mapping_element_free(&previous_element);
+        err = huf_symbol_mapping_element_free(
+                &previous_element);
         __assert__(err);
     }
 
@@ -160,8 +185,13 @@ huf_symbol_mapping_insert(huf_symbol_mapping_t *self, size_t position, huf_symbo
 }
 
 
+// Retrieve values of the symbol mapping element
+// by the specified position.
 huf_error_t
-huf_symbol_mapping_get(huf_symbol_mapping_t *self, size_t position, huf_symbol_mapping_element_t **element)
+huf_symbol_mapping_get(
+        huf_symbol_mapping_t *self,
+        size_t position,
+        huf_symbol_mapping_element_t **element)
 {
     __try__;
 
@@ -177,6 +207,7 @@ huf_symbol_mapping_get(huf_symbol_mapping_t *self, size_t position, huf_symbol_m
 }
 
 
+// Reset the memory occupied by the symbol mapping.
 huf_error_t
 huf_symbol_mapping_reset(huf_symbol_mapping_t *self)
 {
