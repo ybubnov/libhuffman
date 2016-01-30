@@ -12,24 +12,25 @@ huf_read_writer_init(
         huf_reader_t reader,
         huf_writer_t writer)
 {
-    __try__;
+    routine_m();
 
     huf_error_t err;
     huf_read_writer_t *self_ptr;
 
-    __argument__(self);
+    routine_param_m(self);
 
     err = huf_malloc(void_pptr_m(self),
             sizeof(huf_read_writer_t), 1);
-    __assert__(err);
+    if (err != HUF_ERROR_SUCCESS) {
+        routine_error_m(err);
+    }
 
     self_ptr = *self;
 
     self_ptr->reader = reader;
     self_ptr->writer = writer;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -37,16 +38,13 @@ huf_read_writer_init(
 huf_error_t
 huf_read_writer_free(huf_read_writer_t **self)
 {
-    __try__;
-
-    __argument__(self);
+    routine_m();
+    routine_param_m(self);
 
     free(*self);
-
     *self = NULL;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -55,17 +53,15 @@ huf_read_writer_free(huf_read_writer_t **self)
 huf_error_t
 huf_write(huf_writer_t writer, const void *buf, size_t count)
 {
-    __try__;
-
-    __argument__(buf);
+    routine_m();
+    routine_param_m(buf);
 
     size_t have_written = write(writer, buf, count);
     if (have_written < 0) {
-        __raise__(HUF_ERROR_READ_WRITE);
+        routine_error_m(HUF_ERROR_READ_WRITE);
     }
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -74,19 +70,17 @@ huf_write(huf_writer_t writer, const void *buf, size_t count)
 huf_error_t
 huf_read(huf_reader_t reader, void *buf, size_t *count)
 {
-    __try__;
+    routine_m();
 
-    __argument__(buf);
-    __argument__(count);
+    routine_param_m(buf);
+    routine_param_m(count);
 
     size_t have_read = read(reader, buf, *count);
     if (have_read < 0) {
         *count = 0;
-        __raise__(HUF_ERROR_READ_WRITE);
+        routine_error_m(HUF_ERROR_READ_WRITE);
     }
 
     *count = have_read;
-
-    __finally__;
-    __end__;
+    routine_yield_m();
 }

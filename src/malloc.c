@@ -7,15 +7,13 @@
 huf_error_t
 huf_malloc(void** ptr, size_t size, size_t num)
 {
-    __try__;
-
-    __argument__(ptr);
+    routine_m();
+    routine_param_m(ptr);
 
     *ptr = calloc(num, size);
     if (!*ptr) {
-        __raise__(HUF_ERROR_MEMORY_ALLOCATION);
+        routine_error_m(HUF_ERROR_MEMORY_ALLOCATION);
     }
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }

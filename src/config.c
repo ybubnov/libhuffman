@@ -7,15 +7,16 @@
 huf_error_t
 huf_config_init(huf_config_t **self)
 {
-    __try__;
-    __argument__(self);
+    routine_m();
+    routine_param_m(self);
 
     huf_error_t err = huf_malloc(void_pptr_m(self),
             sizeof(huf_config_t), 1);
-    __assert__(err);
+    if (err != HUF_ERROR_SUCCESS) {
+        routine_error_m(err);
+    }
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -23,12 +24,11 @@ huf_config_init(huf_config_t **self)
 huf_error_t
 huf_config_free(huf_config_t **self)
 {
-    __try__;
-    __argument__(self);
+    routine_m();
+    routine_param_m(self);
 
     free(*self);
     *self = NULL;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }

@@ -4,16 +4,17 @@
 #include "huffman/common.h"
 #include "huffman/errors.h"
 
-#define __HUFFMAN_ASCII_SYMBOLS 256
+// The count of ASCII symbols
+#define HUF_ASCII_COUNT 256
 
 // Maximum length of the 2-byte serialized Huffman tree.
-#define __HUFFMAN_MAX_TREE_LENGTH 1024
+#define HUF_BTREE_LEN 1024
 
 // Length of the symbols frequency histogram.
-#define __HUFFMAN_HISTOGRAM_LENGTH 512
+#define HUF_HISTOGRAM_LEN 512
 
 // All leaves of the Huffman tree will be marked with that value.
-#define __HUFFMAN_LEAF -1
+#define HUF_LEAF_NODE -1
 
 
 // A node of the Huffman tree.

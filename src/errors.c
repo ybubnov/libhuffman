@@ -1,26 +1,32 @@
+#include "huffman/common.h"
 #include "huffman/errors.h"
 
 
 static const char*
 __huf_error_map[] = {
-    "",
-    "Failed to allocate memory.",
-    "Invalid argument.",
-    "Failed on read/write operation.",
-    "Fatal failure.",
-    "Unknown failure."
+    "Success",
+    "Failed to allocate memory the memory block",
+    "An invalid argument was specified to the function",
+    "Failed on read/write operation",
+    "Fatal failure",
+    "Unknown failure"
 };
 
-static int
-__huf_error_map_len = 5;
 
-
+// Return string representation of the specified error.
 const char*
-huf_err_string(huf_error_t error)
+huf_error_string(huf_error_t error)
 {
-    if (error < 0 || error >= __huf_error_map_len) {
-        return __huf_error_map[__huf_error_map_len];
+    size_t huf_error_map_len = (sizeof(__huf_error_map) 
+            / sizeof(*__huf_error_map));
+
+    // Return "Uknown failure" if the specified error
+    // values is not defined in the error list.
+    if (error < 0 || error >= huf_error_map_len) {
+        return __huf_error_map[huf_error_map_len-1];
     }
 
+    // Otherwise simply return the string by the
+    // position in the map.
     return __huf_error_map[error];
 }

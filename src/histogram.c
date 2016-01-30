@@ -11,31 +11,31 @@ huf_histogram_init(
         huf_histogram_t **self,
         size_t iota, size_t length)
 {
-    __try__;
+    routine_m();
 
-    huf_error_t err;
-    huf_histogram_t *self_ptr;
+    routine_param_m(self);
+    routine_param_m(iota);
+    routine_param_m(length);
 
-    __argument__(self);
-    __argument__(iota);
-    __argument__(length);
-
-    err = huf_malloc(void_pptr_m(self),
+    huf_error_t err = huf_malloc(void_pptr_m(self),
             sizeof(huf_histogram_t), 1);
-    __assert__(err);
+    if (err != HUF_ERROR_SUCCESS) {
+        routine_error_m(err);
+    }
 
-    self_ptr = *self;
+    huf_histogram_t *self_ptr = *self;
 
     err = huf_malloc(void_pptr_m(&self_ptr->frequencies),
             sizeof(uint64_t), length);
-    __assert__(err);
+    if (err != HUF_ERROR_SUCCESS) {
+        routine_error_m(err);
+    }
 
     self_ptr->iota = iota;
     self_ptr->length = length;
     self_ptr->start = -1;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -43,21 +43,17 @@ huf_histogram_init(
 huf_error_t
 huf_histogram_free(huf_histogram_t **self)
 {
-    __try__;
+    routine_m();
+    routine_param_m(self);
 
-    huf_histogram_t *self_ptr;
-
-    __argument__(self);
-
-    self_ptr = *self;
+    huf_histogram_t *self_ptr = *self;
 
     free(self_ptr->frequencies);
     free(self_ptr);
 
     *self = NULL;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -65,17 +61,14 @@ huf_histogram_free(huf_histogram_t **self)
 huf_error_t
 huf_histogram_reset(huf_histogram_t *self)
 {
-    __try__;
-
-    __argument__(self);
+    routine_m();
+    routine_param_m(self);
 
     memset(self->frequencies, 0,
             sizeof(uint64_t) * self->length);
-
     self->start = -1;
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
 
 
@@ -87,13 +80,13 @@ huf_histogram_populate(
         huf_histogram_t *self,
         void *buf, size_t len)
 {
-    __try__;
+    routine_m();
 
     uint8_t *buf_ptr = buf;
     uint8_t *buf_end = buf_ptr + len;
 
-    __argument__(self);
-    __argument__(buf);
+    routine_param_m(self);
+    routine_param_m(buf);
 
     // Calculate frequencies of the symbols.
     while (buf_ptr + self->iota < buf_end) {
@@ -113,6 +106,5 @@ huf_histogram_populate(
         }
     }
 
-    __finally__;
-    __end__;
+    routine_yield_m();
 }
