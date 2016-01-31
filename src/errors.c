@@ -5,7 +5,7 @@
 static const char*
 __huf_error_map[] = {
     "Success",
-    "Failed to allocate memory the memory block",
+    "Failed to allocate the memory block",
     "An invalid argument was specified to the function",
     "Failed on read/write operation",
     "Fatal failure",
