@@ -126,7 +126,12 @@ huf_tree_reset(huf_tree_t *self)
     routine_param_m(self);
 
     __huf_tree_free(self->root);
+    free(self->root);
     self->root = NULL;
+
+    // Reset the memory occupied by the leaves.
+    memset(self->leaves, 0, (sizeof(huf_node_t*)
+                * HUF_ASCII_COUNT * 2));
 
     routine_yield_m();
 }

@@ -192,12 +192,13 @@ __huf_create_char_coding(huf_encoder_t *self)
     routine_param_m(self);
 
     for (size_t index = 0; index < self->mapping->length; index++) {
-        huf_node_t *node = self->huffman_tree->leaves[index];
-        size_t position = sizeof(coding);
+        const huf_node_t *node = self->huffman_tree->leaves[index];
 
         if (!node) {
             continue;
         }
+
+        size_t position = sizeof(coding);
 
         // Print node to the string.
         err = huf_node_to_string(node, coding, &position);
