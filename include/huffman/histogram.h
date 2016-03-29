@@ -1,8 +1,8 @@
 #ifndef INCLUDE_huffman_histogram_h__
 #define INCLUDE_huffman_histogram_h__
 
-#include "huffman/common.h"
-#include "huffman/errors.h"
+#include <huffman/common.h>
+#include <huffman/errors.h>
 
 
 // A frequency histogram.

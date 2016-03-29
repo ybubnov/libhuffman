@@ -1,8 +1,8 @@
 #include <string.h>
 
-#include "huffman/symbol.h"
-#include "huffman/malloc.h"
-#include "huffman/sys.h"
+#include <huffman/symbol.h>
+#include <huffman/malloc.h>
+#include <huffman/sys.h>
 
 
 // Initialize a new instance of the symbol

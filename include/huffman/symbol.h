@@ -1,8 +1,8 @@
 #ifndef INCLUDE_huffman_symbol_h__
 #define INCLUDE_huffman_symbol_h__
 
-#include "huffman/common.h"
-#include "huffman/errors.h"
+#include <huffman/common.h>
+#include <huffman/errors.h>
 
 
 // An element of the symbol mapping.

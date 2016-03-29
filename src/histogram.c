@@ -1,9 +1,8 @@
 #include <string.h>
-#include <stdio.h>
 
-#include "huffman/histogram.h"
-#include "huffman/malloc.h"
-#include "huffman/sys.h"
+#include <huffman/histogram.h>
+#include <huffman/malloc.h>
+#include <huffman/sys.h>
 
 
 // Initialize a new instance of the frequency histogram.
