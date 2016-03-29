@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "huffman/histogram.h"
 #include "huffman/malloc.h"
@@ -89,7 +90,7 @@ huf_histogram_populate(
     routine_param_m(buf);
 
     // Calculate frequencies of the symbols.
-    while (buf_ptr + self->iota < buf_end) {
+    while (buf_ptr + self->iota <= buf_end) {
         // Reset the destination variable.
         uint64_t element = 0;
 

@@ -1,6 +1,7 @@
 find_library(cmocka_LIBRARY cmocka REQUIRED)
 
 file(GLOB huffman_TEST_SOURCES *.c)
+add_definitions(-std=c99)
 
 foreach(huffman_TEST_SOURCE ${huffman_TEST_SOURCES})
     # Extract extension fomr file name.
