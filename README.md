@@ -5,15 +5,21 @@ The implementation of this library is pretty straightforward, additional informa
 
 ## Installation
 
-The build mechanism of the library is based on the [scons](http://scons.org/) tool, so you could easily install it on your distribution in the following way:
+The build mechanism of the library is based on the [CMake](https://cmake.org) tool, so you could easily install it on your distribution in the following way:
 ```bash
-$ sudo scons install
+$ sudo cmake install
 ```
 
 By default the command above install the library into ```/usr/local/lib``` and all required headers into ```/usr/local/include```.
-To remove the installed library, you could type the following command:
+The installation process is pretty straightforward. Simply create a new directory ```build``` and generate required makefiles:
 ```bash
-$ sudo scons uninstall
+$ mkdir -p build
+$ cmake ..
+```
+
+After that simply run the install target:
+```bash
+$ make install
 ```
 
 ## Usage
