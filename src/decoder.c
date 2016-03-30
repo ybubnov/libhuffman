@@ -256,14 +256,14 @@ huf_decode(const huf_config_t *config)
             routine_error_m(err);
         }
 
-        // Read serialized huffman tree.
+        // Read serialized Huffman tree.
         err = huf_bufio_read(self->bufio_reader, tree_head,
                 tree_length * sizeof(int16_t));
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        // Create linked tree strcuture.
+        // Create linked tree structure.
         err = huf_tree_deserialize(self->huffman_tree,
                 tree_head, tree_length);
         if (err != HUF_ERROR_SUCCESS) {

@@ -3,6 +3,10 @@ find_library(cmocka_LIBRARY cmocka REQUIRED)
 file(GLOB huffman_TEST_SOURCES *.c)
 add_definitions(-std=c99)
 
+find_program(valgrind_PROGRAM valgrind)
+set(valgrind_PROGRAM_OPTIONS "--leak-check=full")
+set(valgrind_COMMAND ${valgrind_PROGRAM} ${valgrind_PROGRAM_OPTIONS})
+
 foreach(huffman_TEST_SOURCE ${huffman_TEST_SOURCES})
     # Extract extension fomr file name.
     get_filename_component(huffman_TEST ${huffman_TEST_SOURCE} NAME_WE)
@@ -12,4 +16,8 @@ foreach(huffman_TEST_SOURCE ${huffman_TEST_SOURCES})
 
     # Define a new test from the source file.
     add_test(NAME ${huffman_TEST} COMMAND ${huffman_TEST})
+
+    # Define a valgrind memory leak checking.
+    add_test(NAME memcheck_${huffman_TEST} COMMAND ${valgrind_COMMAND}
+        ${CMAKE_CURRENT_BINARY_DIR}/${huffman_TEST})
 endforeach(huffman_TEST_SOURCE)

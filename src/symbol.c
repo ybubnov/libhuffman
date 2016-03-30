@@ -51,7 +51,7 @@ huf_symbol_mapping_element_free(
     routine_m();
     routine_param_m(self);
 
-    huf_symbol_mapping_element_t *self_ptr= *self;
+    huf_symbol_mapping_element_t *self_ptr = *self;
 
     free(self_ptr->coding);
     free(self_ptr);

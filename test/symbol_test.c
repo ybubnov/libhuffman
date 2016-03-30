@@ -90,11 +90,11 @@ test_symbol_mapping_reset(void **state)
     huf_symbol_mapping_t *mapping = NULL;
 
     huf_symbol_mapping_init(&mapping, 5);
-
     huf_symbol_mapping_element_t *element1 = NULL;
-    huf_symbol_mapping_element_init(&element1, "value", 5);
 
     for (unsigned i = 0; i < mapping->length; i++) {
+        huf_symbol_mapping_element_init(&element1, "value", 5);
+
         huf_symbol_mapping_insert(mapping, i, element1);
     }
 
@@ -120,10 +120,10 @@ test_symbol_mapping_reset(void **state)
     }
 
     huf_symbol_mapping_element_t *element2 = NULL;
-    huf_symbol_mapping_element_init(&element2, "attribute", 9);
 
     // Repeat all above steps with reseted mapping.
     for (unsigned i = 0; i < mapping->length; i++) {
+        huf_symbol_mapping_element_init(&element2, "attribute", 9);
         huf_symbol_mapping_insert(mapping, i, element2);
     }
 
