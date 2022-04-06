@@ -4,6 +4,7 @@
 #include <huffman/common.h>
 #include <huffman/errors.h>
 
+#define CFFI_huffman_histogram_h__
 
 // A frequency histogram.
 typedef struct __huf_histogram {
@@ -53,4 +54,5 @@ huf_histogram_populate(
         void *buf, size_t len);
 
 
+#undef CFFI_huffman_histogram_h__
 #endif // INCLUDE_huffman_histogram_h__

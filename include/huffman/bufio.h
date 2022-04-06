@@ -5,6 +5,7 @@
 #include "huffman/errors.h"
 #include "huffman/io.h"
 
+#define CFFI_huffman_bufio_h__
 
 // huf_bufio_read_writer_t represents read/writer buffer.
 typedef struct __huf_bufio_read_writer {
@@ -41,21 +42,13 @@ typedef struct __huf_bit_read_writer {
 
 // Write the first bit of the specified word into the
 // bit buffer.
-inline void
-huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit)
-{
-    self->offset -= self->offset ? 1 : 0;
-    self->bits |= (bit & 1) << self->offset;
-}
+void
+huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit);
 
 
 // Reset the content of the buffer.
-inline void
-huf_bit_read_writer_reset(huf_bit_read_writer_t *self)
-{
-    self->bits = 0;
-    self->offset = 8;
-}
+void
+huf_bit_read_writer_reset(huf_bit_read_writer_t *self);
 
 
 // Initialize a new instance of the read-write buffer
@@ -112,4 +105,5 @@ huf_bufio_write_uint8(
         uint8_t byte);
 
 
+#undef CFFI_huffman_bufio_h__
 #endif // INCLUDE_huffman_bufio_h__

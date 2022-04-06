@@ -5,6 +5,7 @@
 #include "huffman/errors.h"
 #include "huffman/io.h"
 
+#define CFFI_huffman_config_h__
 
 typedef struct __huf_encoder_config {
     // Count of the reader bytes to encode. This is the only
@@ -45,4 +46,5 @@ huf_error_t
 huf_config_free(huf_config_t **self);
 
 
+#undef CFFI_huffman_config_h__
 #endif // INCLUDE_huffman_config_h__

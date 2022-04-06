@@ -1,6 +1,6 @@
 #ifndef INCLUDE_huffman_errors_h__
 #define INCLUDE_huffman_errors_h__
-
+#define CFFI_huffman_errors_h__
 
 // Enumeration of the possible errors.
 typedef enum {
@@ -26,4 +26,5 @@ typedef enum {
 const char* huf_error_string(huf_error_t error);
 
 
+#undef CFFI_huffman_errors_h__
 #endif // INCLUDE_huffman_errors_h__

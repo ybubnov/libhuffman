@@ -5,6 +5,25 @@
 #include "huffman/sys.h"
 
 
+// Write the first bit of the specified word into the
+// bit buffer.
+void
+huf_bit_write(huf_bit_read_writer_t *self, uint8_t bit)
+{
+    self->offset -= self->offset ? 1 : 0;
+    self->bits |= (bit & 1) << self->offset;
+}
+
+
+// Reset the content of the buffer.
+void
+huf_bit_read_writer_reset(huf_bit_read_writer_t *self)
+{
+    self->bits = 0;
+    self->offset = 8;
+}
+
+
 // Initialize a new instance of the read-write buffer
 // with the specified size in bytes.
 huf_error_t

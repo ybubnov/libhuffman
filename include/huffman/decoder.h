@@ -5,6 +5,7 @@
 #include "huffman/common.h"
 #include "huffman/errors.h"
 
+#define CFFI_huffman_decoder_h__
 
 // A Huffman decoding context.
 typedef struct __huf_decoder huf_decoder_t;
@@ -28,4 +29,5 @@ huf_error_t
 huf_decode(const huf_config_t *config);
 
 
+#undef CFFI_huffman_decoder_h__
 #endif // INCLUDE_huffman_decoder_h__

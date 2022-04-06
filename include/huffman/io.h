@@ -4,6 +4,7 @@
 #include "huffman/common.h"
 #include "huffman/errors.h"
 
+#define CFFI_huffman_io_h__
 
 // huf_writer_t is a writer abstraction.
 typedef int huf_writer_t;
@@ -50,4 +51,5 @@ huf_error_t
 huf_read(huf_reader_t reader, void *buf, size_t *count);
 
 
+#undef CFFI_huffman_io_h__
 #endif // INCLUDE_huffman_io_h__

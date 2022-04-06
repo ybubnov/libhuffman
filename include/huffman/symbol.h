@@ -4,6 +4,7 @@
 #include <huffman/common.h>
 #include <huffman/errors.h>
 
+#define CFFI_huffman_symbol_h__
 
 // An element of the symbol mapping.
 typedef struct __huf_symbol_mapping_element {
@@ -78,4 +79,5 @@ huf_symbol_mapping_reset(
         huf_symbol_mapping_t *self);
 
 
+#undef CFFI_huffman_symbol_h__
 #endif // INCLUDE_huffman_symbol_h__

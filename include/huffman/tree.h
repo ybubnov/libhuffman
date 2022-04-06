@@ -17,6 +17,8 @@
 #define HUF_LEAF_NODE -1
 
 
+#define CFFI_huffman_tree_h__
+
 // A node of the Huffman tree.
 typedef struct __huf_node {
     // The weight of the node.
@@ -84,4 +86,5 @@ huf_tree_serialize(
         int16_t *buf, size_t *len);
 
 
+#undef CFFI_huffman_tree_h__
 #endif // INCLUDE_huffman_tree_h__
