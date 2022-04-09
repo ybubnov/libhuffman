@@ -1,3 +1,5 @@
+include_directories(AFTER /usr/local/include)
+
 find_library(cmocka_LIBRARY cmocka REQUIRED)
 
 file(GLOB huffman_TEST_SOURCES *.c)
@@ -18,6 +20,8 @@ foreach(huffman_TEST_SOURCE ${huffman_TEST_SOURCES})
     add_test(NAME ${huffman_TEST} COMMAND ${huffman_TEST})
 
     # Define a valgrind memory leak checking.
-    add_test(NAME memcheck_${huffman_TEST} COMMAND ${valgrind_COMMAND}
-        ${CMAKE_CURRENT_BINARY_DIR}/${huffman_TEST})
+    if(valgrind_PROGRAM)
+        add_test(NAME memcheck_${huffman_TEST} COMMAND ${valgrind_COMMAND}
+            ${CMAKE_CURRENT_BINARY_DIR}/${huffman_TEST})
+    endif()
 endforeach(huffman_TEST_SOURCE)

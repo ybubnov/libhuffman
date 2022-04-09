@@ -19,3 +19,4 @@
 
 build
 *.swp
+huffmanfile/_huffmanfile.c

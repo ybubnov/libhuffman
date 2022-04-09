@@ -30,9 +30,7 @@ typedef struct __huf_histogram {
 
 // Initialize a new instance of the frequency histogram.
 huf_error_t
-huf_histogram_init(
-        huf_histogram_t **self,
-        size_t iota, size_t length);
+huf_histogram_init(huf_histogram_t **self, size_t iota, size_t length);
 
 
 // Release memory occupied by the frequency histogram.
@@ -45,13 +43,10 @@ huf_error_t
 huf_histogram_reset(huf_histogram_t *self);
 
 
-// Increase the appropriate element of the frequencies
-// chart by one if the element was found in the specified
-// buffer.
+// Increase the appropriate element of the frequencies chart by one if the element
+// was found in the specified buffer.
 huf_error_t
-huf_histogram_populate(
-        huf_histogram_t *self,
-        void *buf, size_t len);
+huf_histogram_populate(huf_histogram_t *self, void *buf, size_t len);
 
 
 #undef CFFI_huffman_histogram_h__

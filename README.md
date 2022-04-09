@@ -24,12 +24,19 @@ $ make install
 
 ## Usage
 
-At this moment only two methods for econding and deconding appropriately are available.
+At this moment only two methods for econding and deconding are available.
 To encode the data by the file descriptor at the first step the configuration should be defined:
 ```c
+
+huf_read_writer_t *file_in;
+huf_fdopen(&file_in, 0) // Read from standard input.
+
+huf_read_writer_t *mem_out;
+huf_memopen(&mem_out, &buf, HUF_1MIB_BUFFER);
+
 huf_config_t config = {
-   .reader = fdin,
-   .writer = fdout,
+   .reader = file_in,
+   .writer = mem_out,
    .length = length,
    .chunk_size = HUF_64KIB_BUFFER,
    .reader_buffer_size = HUF_128KIB_BUFFER,

@@ -32,8 +32,7 @@ struct __huf_decoder {
 
 // Decode the chunk of data.
 static huf_error_t
-__huf_decode_chunk(
-        huf_decoder_t *self, size_t len)
+__huf_decode_chunk(huf_decoder_t *self, size_t len)
 {
     routine_m();
 
@@ -125,13 +124,6 @@ huf_decoder_init(
     memcpy(decoder_config, config, sizeof(*config));
     self_ptr->config = decoder_config;
 
-    // Initialize read-writer instance.
-    err = huf_read_writer_init(&self_ptr->read_writer,
-            self_ptr->config->reader, config->writer);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
-
     // Allocate memory for Huffman tree.
     err = huf_tree_init(&self_ptr->huffman_tree);
     if (err != HUF_ERROR_SUCCESS) {
@@ -142,7 +134,7 @@ huf_decoder_init(
     // size set to zero, the 64 KiB buffer will be used
     // by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_writer,
-            self_ptr->read_writer,
+            self_ptr->config->writer,
             self_ptr->config->writer_buffer_size);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
@@ -152,7 +144,7 @@ huf_decoder_init(
     // size set to zero, the 64 KiB buffer will be used
     // by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_reader,
-            self_ptr->read_writer,
+            self_ptr->config->reader,
             self_ptr->config->reader_buffer_size);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
@@ -188,12 +180,6 @@ huf_decoder_free(huf_decoder_t **self)
 
     err = huf_bufio_read_writer_free(
             &self_ptr->bufio_reader);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
-
-    err = huf_read_writer_free(
-            &self_ptr->read_writer);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }

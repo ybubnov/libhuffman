@@ -28,11 +28,11 @@ typedef struct __huf_encoder_config {
 
     // Instance of the reader which will be used as
     // a provider of the input data.
-    huf_reader_t reader;
+    huf_read_writer_t *reader;
 
     // Instance of the writer which will be used as
     // a consumer of the Huffman-encoded data.
-    huf_writer_t writer;
+    huf_read_writer_t *writer;
 } huf_config_t;
 
 

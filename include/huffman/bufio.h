@@ -62,47 +62,35 @@ huf_bufio_read_writer_init(
 
 // Release memory occupied by the read-write buffer.
 huf_error_t
-huf_bufio_read_writer_free(
-        huf_bufio_read_writer_t **self);
+huf_bufio_read_writer_free(huf_bufio_read_writer_t **self);
 
 
 // Flush the writer buffer.
 huf_error_t
-huf_bufio_read_writer_flush(
-        huf_bufio_read_writer_t *self);
+huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self);
 
 
-// Write the specified amount of bytes starting from the
-// provided pointer into the writer buffer. If the buffer
-// will be filled during the copying of bytes, it could be
-// flushed.
+// Write the specified amount of bytes starting from the provided pointer into the
+// writer buffer. If the buffer will be filled during the copying of bytes, it could
+// be flushed.
 huf_error_t
-huf_bufio_write(
-        huf_bufio_read_writer_t *self,
-        const void *buf, size_t size);
+huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t size);
 
 
-// Read the specified amount of bytes from the reader buffer
-// starting from the provided pointer.
+// Read the specified amount of bytes from the reader buffer starting from the provided
+// pointer.
 huf_error_t
-huf_bufio_read(
-        huf_bufio_read_writer_t *self,
-        void *buf, size_t size);
+huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t size);
 
 
-// Read the 8-bits word from the reader buffer into the
-// specified pointer.
+// Read the 8-bits word from the reader buffer into the specified pointer.
 huf_error_t
-huf_bufio_read_uint8(
-        huf_bufio_read_writer_t *self,
-        uint8_t *byte);
+huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte);
 
 
 // Write the specified 8-bits word into the writer buffer.
 huf_error_t
-huf_bufio_write_uint8(
-        huf_bufio_read_writer_t *self,
-        uint8_t byte);
+huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte);
 
 
 #undef CFFI_huffman_bufio_h__

@@ -3,6 +3,7 @@
 
 #include "huffman/common.h"
 #include "huffman/errors.h"
+#include "huffman/histogram.h"
 
 // The count of ASCII symbols
 #define HUF_ASCII_COUNT 256
@@ -39,9 +40,7 @@ typedef struct __huf_node {
 // tree starting from the specified node into the
 // buffer.
 huf_error_t
-huf_node_to_string(
-        const huf_node_t *self,
-        uint8_t *buf, size_t *len);
+huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len);
 
 
 // A Huffman tree.
@@ -64,26 +63,23 @@ huf_error_t
 huf_tree_free(huf_tree_t **self);
 
 
-// Release the memory occupied by the Huffman
-// tree nodes.
+// Release the memory occupied by the Huffman tree nodes.
 huf_error_t
 huf_tree_reset(huf_tree_t *self);
 
 
-// De-serialize the Huffman tree into the
-// provided buffer.
+// De-serialize the Huffman tree into the provided buffer.
 huf_error_t
-huf_tree_deserialize(
-        huf_tree_t *self,
-        const int16_t *buf, size_t len);
+huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len);
 
 
-// Serialize the Huffman tree from the
-// provided buffer.
+// Serialize the Huffman tree from the provided buffer.
 huf_error_t
-huf_tree_serialize(
-        huf_tree_t *self,
-        int16_t *buf, size_t *len);
+huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len);
+
+
+huf_error_t
+huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram);
 
 
 #undef CFFI_huffman_tree_h__

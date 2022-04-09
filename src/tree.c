@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "huffman/histogram.h"
 #include "huffman/tree.h"
 #include "huffman/malloc.h"
 #include "huffman/sys.h"
@@ -9,9 +10,7 @@
 // tree starting from the specified node into the
 // buffer.
 huf_error_t
-huf_node_to_string(
-        const huf_node_t *self,
-        uint8_t *buf, size_t *len)
+huf_node_to_string(const huf_node_t *self, uint8_t *buf, size_t *len)
 {
     routine_m();
 
@@ -130,8 +129,7 @@ huf_tree_reset(huf_tree_t *self)
     self->root = NULL;
 
     // Reset the memory occupied by the leaves.
-    memset(self->leaves, 0, (sizeof(huf_node_t*)
-                * HUF_ASCII_COUNT * 2));
+    memset(self->leaves, 0, (sizeof(huf_node_t*) * HUF_ASCII_COUNT * 2));
 
     routine_yield_m();
 }
@@ -140,9 +138,7 @@ huf_tree_reset(huf_tree_t *self)
 // Recursively de-serialize the Huffman tree into the
 // provided buffer.
 static huf_error_t
-__huf_deserialize_tree(
-        huf_node_t **node,
-        const int16_t *buf, size_t *len)
+__huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
 {
     routine_m();
 
@@ -220,9 +216,7 @@ __huf_deserialize_tree(
 // De-serialize the Huffman tree into the
 // provided buffer.
 huf_error_t
-huf_tree_deserialize(
-        huf_tree_t *self,
-        const int16_t *buf, size_t len)
+huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
 {
     routine_m();
 
@@ -243,9 +237,7 @@ huf_tree_deserialize(
 // Recursively serialize the Huffman tree from the
 // provided buffer.
 static huf_error_t
-__huf_serialize_tree(
-        const huf_node_t *node,
-        int16_t *buf, size_t *len)
+__huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
 {
     routine_m();
 
@@ -286,12 +278,9 @@ __huf_serialize_tree(
 }
 
 
-// Serialize the Huffman tree from the
-// provided buffer.
+// Serialize the Huffman tree from the provided buffer.
 huf_error_t
-huf_tree_serialize(
-        huf_tree_t *self,
-        int16_t *buf, size_t *len)
+huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
 {
     routine_m();
 
@@ -306,4 +295,135 @@ huf_tree_serialize(
     }
 
     routine_yield_m();
+}
+
+
+huf_error_t
+huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
+{
+    routine_m();
+
+    huf_error_t err;
+    huf_node_t *shadow_tree[HUF_ASCII_COUNT * 2] = {0};
+
+    size_t j;
+    int64_t rate, rate1, rate2;
+    int16_t index1, index2;
+    int16_t node = HUF_ASCII_COUNT;
+
+    size_t start;
+    uint64_t *rates = NULL;
+
+    routine_param_m(self);
+    routine_param_m(histogram);
+
+    // Create local copies of the histogram instance attibutes.
+    start = histogram->start;
+    rates = histogram->frequencies;
+
+    // Calculate the length of the shadow tree.
+    size_t shadow_tree_len = (sizeof(shadow_tree)
+            / sizeof(*shadow_tree));
+
+    while (start < shadow_tree_len) {
+        index1 = index2 = -1;
+        rate1 = rate2 = 0;
+
+        // Skip zero-value frequencies, since they are not
+        // paricipating in the building of the Huffman tree.
+        while (!rates[start]) {
+            start++;
+        }
+
+        // Find next minimum frequencies to construct a new tree node.
+        for (j = start; j < (size_t) node; j++) {
+            rate = rates[j];
+
+            // Skip zero-value frequencies.
+            if (!rate) {
+                continue;
+            }
+
+            if (!rate1) {
+                // Initialize the first frequecy value first.
+                rate1 = rate;
+                index1 = j;
+            } else if (rate <= rate1) {
+                // Swap values of the rate1 and rate2.
+                rate2 = rate1;
+                rate1 = rate;
+                index2 = index1;
+                index1 = j;
+            } else if (!rate2 || rate <= rate2) {
+                // If the rate2 is lower, than found.
+                rate2 = rate;
+                index2 = j;
+            }
+        }
+
+        // Tree is constructed, leave the while loop.
+        if (index1 == -1 || index2 == -1) {
+            self->root = shadow_tree[node - 1];
+            break;
+        }
+
+        if (!shadow_tree[index1]) {
+            // Allocate memory for the left child of the node.
+            err = huf_malloc(void_pptr_m(&shadow_tree[index1]),
+                    sizeof(huf_node_t), 1);
+            if (err != HUF_ERROR_SUCCESS) {
+                routine_error_m(err);
+            }
+        }
+
+        if (!shadow_tree[index2]) {
+            // Allocate memory for the right child of the node.
+            err = huf_malloc(void_pptr_m(&shadow_tree[index2]),
+                    sizeof(huf_node_t), 1);
+            if (err != HUF_ERROR_SUCCESS) {
+                routine_error_m(err);
+            }
+        }
+
+        // Allocate memory for the node itself.
+        err = huf_malloc(void_pptr_m(&shadow_tree[node]),
+                sizeof(huf_node_t), 1);
+        if (err != HUF_ERROR_SUCCESS) {
+            routine_error_m(err);
+        }
+
+        if (index1 < HUF_ASCII_COUNT) {
+            self->leaves[index1] = shadow_tree[index1];
+        }
+
+        if (index2 < HUF_ASCII_COUNT) {
+            self->leaves[index2] = shadow_tree[index2];
+        }
+
+        shadow_tree[index1]->parent = shadow_tree[node];
+        shadow_tree[index2]->parent = shadow_tree[node];
+        shadow_tree[node]->left = shadow_tree[index1];
+        shadow_tree[node]->right = shadow_tree[index2];
+
+        shadow_tree[index1]->index = index1;
+        shadow_tree[index2]->index = index2;
+        shadow_tree[node]->index = node;
+
+        rates[node] = rate1 + rate2;
+        rates[index1] = 0;
+        rates[index2] = 0;
+        node++;
+    }
+
+    routine_ensure_m();
+
+    // If the routine was interrupted by an error we should
+    // release the memory block occupied by the shadow tree.
+    if (routine_violation_m()) {
+        for (j = 0; j < shadow_tree_len; j++) {
+            free(shadow_tree[j]);
+        }
+    }
+
+    routine_defer_m();
 }

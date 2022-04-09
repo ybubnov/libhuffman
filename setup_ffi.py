@@ -24,7 +24,7 @@ def make_library_prototypes(headers: List[str]) -> str:
 
 
 def make_library_header(headers: List[str]) -> str:
-    return "\n".join(f"#include <{header}>" % header for header in headers),
+    return "\n".join(f"#include <{header}>" for header in headers)
 
 
 headers = [
@@ -58,7 +58,7 @@ sources = [
 
 ffibuilder = cffi.FFI()
 ffibuilder.set_source(
-    "huffmanlib._huffmanlib",
+    "huffmanfile._huffmanfile",
     make_library_header(headers),
     include_dirs=["include"],
     sources=sources,

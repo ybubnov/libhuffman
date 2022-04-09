@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2)
 
 project(huffman C)
 enable_testing()
 
-set(huffman_LIBRARY_VERSION "0.0.1")
-set(huffman_LIBRARY_SOVERSION "0")
+set(huffman_LIBRARY_VERSION "1.0.0")
+set(huffman_LIBRARY_SOVERSION "1")
 
 
 include_directories(include)

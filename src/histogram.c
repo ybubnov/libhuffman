@@ -64,8 +64,7 @@ huf_histogram_reset(huf_histogram_t *self)
     routine_m();
     routine_param_m(self);
 
-    memset(self->frequencies, 0,
-            sizeof(uint64_t) * self->length);
+    memset(self->frequencies, 0, sizeof(uint64_t) * self->length);
     self->start = -1;
 
     routine_yield_m();

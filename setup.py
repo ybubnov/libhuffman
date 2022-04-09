@@ -3,7 +3,7 @@ from setuptools import setup
 
 
 setup(
-    name="huffmanlib",
+    name="huffmanfile",
     use_scm_version=True,
     description="Python bindings for libhuffman",
     long_description=Path("README.md").read_text(),
@@ -25,8 +25,8 @@ setup(
         "License :: OSI Approved :: MIT License",
     ],
     keywords=["huffman", "encoding", "decoding", "compression"],
-    package_dir={"huffmanlib": "huffmanlib"},
-    packages=["huffmanlib"],
+    package_dir={"huffmanfile": "huffmanfile"},
+    packages=["huffmanfile"],
     include_package_data=True,
     package_data={"build_tools": ["setup_ffi.py"]},
     install_requires=["cffi>=1.12.0"],

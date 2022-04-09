@@ -6,49 +6,27 @@
 
 #define CFFI_huffman_io_h__
 
-// huf_writer_t is a writer abstraction.
-typedef int huf_writer_t;
 
-
-// huf_reader_r is a reader abstraction.
-typedef int huf_reader_t;
-
-
-// huf_read_writer_t groups reader and
-// writer abstractions.
+// huf_read_writer_t groups reader and writer abstractions.
 typedef struct __huf_read_writer {
-    // A reader instance.
-    huf_reader_t reader;
+    void *stream;
 
-    // A writer instance.
-    huf_writer_t writer;
+    // Write the specified amount of byte from the buffer
+    // starting from the buf pointer.
+    huf_error_t (*write)(void *stream, const void *buf, size_t count);
+
+    // Read the count of bytes into the buffer starting from the buf pointer.
+    // The amount of read bytes are written into count argument.
+    huf_error_t (*read)(void *stream, void *buf, size_t *count);
 } huf_read_writer_t;
 
 
-// Initialize a new instance of the read-writer.
-huf_error_t
-huf_read_writer_init(
-        huf_read_writer_t **self,
-        huf_reader_t reader,
-        huf_writer_t writer);
+huf_error_t huf_memopen(huf_read_writer_t **self, void **buf, size_t capacity);
+huf_error_t huf_memlen(huf_read_writer_t *self, size_t *len);
+huf_error_t huf_memclose(huf_read_writer_t **self);
 
-
-// Release memory occupied by the read-writer.
-huf_error_t
-huf_read_writer_free(
-        huf_read_writer_t **self);
-
-
-// Write the specified amount of byte from the buffer
-// starting from the *buf* pointer.
-huf_error_t
-huf_write(huf_writer_t writer, const void *buf, size_t count);
-
-
-// Read the specified amount of bytes into the buffer
-// starting from the *buf* pointer.
-huf_error_t
-huf_read(huf_reader_t reader, void *buf, size_t *count);
+huf_error_t huf_fdopen(huf_read_writer_t **self, int fd);
+huf_error_t huf_fdclose(huf_read_writer_t **self);
 
 
 #undef CFFI_huffman_io_h__
