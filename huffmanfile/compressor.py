@@ -112,7 +112,7 @@ class HuffmanCompressor:
         The compressor object may not be used after this method is called.
         """
 
-        lib.huf_memclose(self._input_ptr[0])
-        lib.huf_memclose(self._output_ptr[0])
+        self.istream.close()
+        self.ostream.close()
 
         return bytes()
