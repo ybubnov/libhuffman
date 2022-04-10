@@ -98,40 +98,30 @@ __huf_encode_chunk(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
     routine_param_m(self);
     routine_param_m(buf);
 
-    printf("  --- 333\n");
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
-        printf("    --- 444\n");
         err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
-        printf("    --- 555\n");
 
         for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
-            printf("      --- 666\n");
             huf_bit_write(&self->bit_writer, element->coding[index - 1]);
-            printf("      --- 777\n");
-
             if (self->bit_writer.offset) {
                 continue;
             }
 
-            printf("      --- 888\n");
             // If buffer is full, then dump it to the writer buffer.
             err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
             if (err != HUF_ERROR_SUCCESS) {
                 routine_error_m(err);
             }
-            printf("      --- 999\n");
 
             huf_bit_read_writer_reset(&self->bit_writer);
-            printf("      --- aaa\n");
         }
     }
 
-    printf("      --- bbb\n");
     if (self->bit_writer.offset != 8) {
         err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
         if (err != HUF_ERROR_SUCCESS) {
@@ -358,9 +348,7 @@ huf_encode(const huf_config_t *config)
         huf_bit_read_writer_reset(&self->bit_writer);
 
         // Write data
-        printf("-- 1111\n");
         err = __huf_encode_chunk(self, buf, need_to_read);
-        printf("-- 2222\n");
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }

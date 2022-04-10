@@ -71,6 +71,7 @@ huf_error_t huf_fdclose(huf_read_writer_t **self)
 
 typedef struct __huf_memstream {
     void **buf;
+    size_t off;
     size_t len;
     size_t cap;
 } huf_membuf_t;
@@ -94,15 +95,18 @@ huf_error_t memread(void *stream, void *buf, size_t *count)
 {
     huf_membuf_t *mem = (huf_membuf_t*)stream;
     size_t num_copy = *count;
+    size_t num_remained = mem->len - mem->off;
 
-    if (num_copy > mem->len) {
-        num_copy = mem->len;
-        *count = num_copy;
+    if (num_copy > num_remained) {
+        num_copy = num_remained;
     }
 
+    printf("!!! %d\n", num_copy);
+    *count = num_copy;
+
     if (num_copy > 0) {
-        memcpy(buf, *mem->buf, num_copy);
-        mem->len -= num_copy;
+        memcpy(buf, (*mem->buf)+mem->off, num_copy);
+        mem->off += num_copy;
     }
 
     return HUF_ERROR_SUCCESS;
@@ -153,6 +157,7 @@ huf_error_t huf_memopen(huf_read_writer_t **self, void **buf, size_t capacity)
 
     mem->buf = buf;
     mem->len = 0;
+    mem->off = 0;
     mem->cap = capacity;
 
     self_ptr = *self;

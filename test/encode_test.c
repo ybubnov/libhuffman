@@ -5,17 +5,14 @@
 #include <cmocka.h>
 
 #include <huffman.h>
+#include "assert.h"
 
-
-#define assert_ok(statement) \
-    assert_int_equal((statement), HUF_ERROR_SUCCESS) \
 
 
 static void
 test_encoder(void **state)
 {
     void *bufin, *bufout = NULL;
-    huf_error_t err;
 
     huf_read_writer_t *input = NULL;
     huf_read_writer_t *output = NULL;
@@ -23,7 +20,7 @@ test_encoder(void **state)
     assert_ok(huf_memopen(&input, &bufin, 128));
     assert_ok(huf_memopen(&output, &bufout, 2048));
 
-    huf_config_t encoder_config = {
+    huf_config_t config = {
         .length = 10,
         .reader_buffer_size = 128,
         .writer_buffer_size = 2048,
@@ -32,14 +29,32 @@ test_encoder(void **state)
     };
 
     assert_ok(input->write(input->stream, "0123456789", 10));
-    assert_ok(huf_encode(&encoder_config));
+    assert_ok(huf_encode(&config));
 
-    size_t output_len = 0;
-    assert_ok(huf_memlen(output, &output_len));
-    assert_true(output_len > 0);
+    size_t encoding_len = 0;
+    assert_ok(huf_memlen(output, &encoding_len));
+    assert_true(encoding_len > 0);
+
+    // Switch reader and writer to decode encoded information.
+    config.reader = output;
+    config.writer = input;
+    config.length = encoding_len;
+
+    assert_ok(huf_decode(&config));
+
+    // Ensure that decoding result is the same as the encoded string.
+    // Put an extra character for a null-terminated string comparison.
+    char result[11] = {0};
+    size_t result_len = 10;
+    assert_ok(input->read(input->stream, result, &result_len));
+    assert_int_equal(result_len, 10);
+    assert_string_equal(result, "0123456789");
 
     assert_ok(huf_memclose(&input));
     assert_ok(huf_memclose(&output));
+
+    free(bufin);
+    free(bufout);
 }
 
 

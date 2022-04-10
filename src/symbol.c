@@ -201,7 +201,6 @@ huf_symbol_mapping_get(
 
     routine_inrange_m(position, 0, self->length - 1);
     *element = self->symbols[position];
-    printf("!!! %p %p\n", element, self->symbols[position]);
 
     routine_yield_m();
 }
