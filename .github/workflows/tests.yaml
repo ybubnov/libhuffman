@@ -23,4 +23,4 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      run: ctest
+      run: ctest -V

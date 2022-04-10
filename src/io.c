@@ -81,13 +81,34 @@ huf_error_t memwrite(void *stream, const void *buf, size_t count)
 {
     huf_membuf_t *mem = (huf_membuf_t*)stream;
 
-    if (mem->cap > mem->len + count) {
-        memcpy(*(mem->buf) + mem->len, buf, count);
-        mem->len += count;
-        return HUF_ERROR_SUCCESS;
+    void *newbuf = NULL;
+    size_t newcap = mem->cap * 2;
+    if (count > newcap) {
+        newcap = count * 2;
     }
 
-    return HUF_ERROR_MEMORY_ALLOCATION;
+    if (mem->cap >= mem->len + count) {
+        memcpy(*(mem->buf) + mem->len, buf, count);
+        mem->len += count;
+    } else {
+        // Allocate a new block of the memory since new portion of data
+        // does not fit to allocated buffer.
+        huf_error_t err = huf_malloc(void_pptr_m(&newbuf), sizeof(void), newcap);
+        if (err != HUF_ERROR_SUCCESS) {
+            return err;
+        }
+
+        // Copy the memory from the previous buffer and free the occupied memory.
+        memcpy(newbuf, *(mem->buf), mem->len);
+        memcpy(newbuf + mem->len, buf, count);
+        mem->len += count;
+        mem->cap = newcap;
+
+        free(*(mem->buf));
+        *mem->buf = newbuf;
+    }
+
+    return HUF_ERROR_SUCCESS;
 }
 
 
@@ -101,7 +122,6 @@ huf_error_t memread(void *stream, void *buf, size_t *count)
         num_copy = num_remained;
     }
 
-    printf("!!! %d\n", num_copy);
     *count = num_copy;
 
     if (num_copy > 0) {
@@ -114,7 +134,7 @@ huf_error_t memread(void *stream, void *buf, size_t *count)
 
 
 // Return the length of the membuf into the len argument.
-huf_error_t huf_memlen(huf_read_writer_t *self, size_t *len)
+huf_error_t huf_memlen(const huf_read_writer_t *self, size_t *len)
 {
     routine_m();
 
@@ -123,6 +143,32 @@ huf_error_t huf_memlen(huf_read_writer_t *self, size_t *len)
 
     huf_membuf_t *mem = (huf_membuf_t*)self->stream;
     *len = mem->len;
+
+    routine_yield_m();
+}
+
+
+huf_error_t huf_memcap(const huf_read_writer_t *self, size_t *cap)
+{
+    routine_m();
+
+    routine_param_m(self);
+    routine_param_m(cap);
+
+    huf_membuf_t *mem = (huf_membuf_t*)self->stream;
+    *cap = mem->cap;
+
+    routine_yield_m();
+}
+
+
+huf_error_t huf_memrewind(huf_read_writer_t *self)
+{
+    routine_m();
+    routine_param_m(self);
+
+    huf_membuf_t *mem = (huf_membuf_t*)self->stream;
+    mem->off = 0;
 
     routine_yield_m();
 }

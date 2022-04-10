@@ -279,8 +279,7 @@ huf_encode(const huf_config_t *config)
         routine_error_m(err);
     }
 
-    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t),
-            self->config->chunk_size);
+    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t), self->config->chunk_size);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }

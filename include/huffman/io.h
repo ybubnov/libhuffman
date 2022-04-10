@@ -22,7 +22,9 @@ typedef struct __huf_read_writer {
 
 
 huf_error_t huf_memopen(huf_read_writer_t **self, void **buf, size_t capacity);
-huf_error_t huf_memlen(huf_read_writer_t *self, size_t *len);
+huf_error_t huf_memlen(const huf_read_writer_t *self, size_t *len);
+huf_error_t huf_memcap(const huf_read_writer_t *self, size_t *cap);
+huf_error_t huf_memrewind(huf_read_writer_t *self);
 huf_error_t huf_memclose(huf_read_writer_t **self);
 
 huf_error_t huf_fdopen(huf_read_writer_t **self, int fd);
