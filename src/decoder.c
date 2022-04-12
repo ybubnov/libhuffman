@@ -70,8 +70,7 @@ __huf_decode_chunk(huf_decoder_t *self, size_t len)
                 continue;
             }
 
-            err = huf_bufio_write_uint8(self->bufio_writer,
-                    self->last_node->index);
+            err = huf_bufio_write_uint8(self->bufio_writer, self->last_node->index);
             if (err != HUF_ERROR_SUCCESS) {
                 routine_error_m(err);
             }
@@ -94,9 +93,7 @@ __huf_decode_chunk(huf_decoder_t *self, size_t len)
 
 // Initialize a new instance of the Huffman-decoder.
 huf_error_t
-huf_decoder_init(
-        huf_decoder_t **self,
-        const huf_config_t *config)
+huf_decoder_init(huf_decoder_t **self, const huf_config_t *config)
 {
     routine_m();
 
@@ -107,8 +104,7 @@ huf_decoder_init(
     routine_param_m(config);
 
     // Allocate memory for a new decoder instance.
-    huf_error_t err = huf_malloc(void_pptr_m(&self_ptr),
-            sizeof(huf_decoder_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(&self_ptr), sizeof(huf_decoder_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -172,20 +168,17 @@ huf_decoder_free(huf_decoder_t **self)
         routine_error_m(err);
     }
 
-    err = huf_bufio_read_writer_free(
-            &self_ptr->bufio_writer);
+    err = huf_bufio_read_writer_free(&self_ptr->bufio_writer);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
 
-    err = huf_bufio_read_writer_free(
-            &self_ptr->bufio_reader);
+    err = huf_bufio_read_writer_free(&self_ptr->bufio_reader);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
 
-    err = huf_config_free(
-            &self_ptr->config);
+    err = huf_config_free(&self_ptr->config);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -217,27 +210,22 @@ huf_decode(const huf_config_t *config)
         routine_error_m(err);
     }
 
-    while (self->config->length >
-            self->bufio_reader->have_been_processed) {
-        // Read the length of the next chunk (the original length of
-        // encoded bytes).
-        err = huf_bufio_read(self->bufio_reader,
-                &self->config->chunk_size,
-                sizeof(self->config->chunk_size));
+    while (self->config->length > self->bufio_reader->have_been_processed) {
+        // Read the length of the next chunk (the original length of encoded bytes).
+        err = huf_bufio_read(self->bufio_reader, &self->config->blocksize,
+                sizeof(self->config->blocksize));
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         // Read the length of the serialized Huffman tree.
-        err = huf_bufio_read(self->bufio_reader,
-                &tree_length, sizeof(tree_length));
+        err = huf_bufio_read(self->bufio_reader, &tree_length, sizeof(tree_length));
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         // Allocate memory for serialized Huffman tree.
-        err = huf_malloc(void_pptr_m(&tree_head),
-                sizeof(int16_t), tree_length);
+        err = huf_malloc(void_pptr_m(&tree_head), sizeof(int16_t), tree_length);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -250,14 +238,13 @@ huf_decode(const huf_config_t *config)
         }
 
         // Create linked tree structure.
-        err = huf_tree_deserialize(self->huffman_tree,
-                tree_head, tree_length);
+        err = huf_tree_deserialize(self->huffman_tree, tree_head, tree_length);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         // Decode the next chunk of data.
-        err = __huf_decode_chunk(self, self->config->chunk_size);
+        err = __huf_decode_chunk(self, self->config->blocksize);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }

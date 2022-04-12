@@ -13,10 +13,10 @@ typedef struct __huf_encoder_config {
     // be compressed.
     uint64_t length;
 
-    // Size of the encoding chunk. If set to zero then
+    // Size of the encoding block. If set to zero then
     // length of the data to encode will be treated as
-    // size of the chunk.
-    uint64_t chunk_size;
+    // size of the block.
+    uint64_t blocksize;
 
     // Size of the reader buffer in bytes. If set to zero
     // then will be defaulted to 64 KiB.

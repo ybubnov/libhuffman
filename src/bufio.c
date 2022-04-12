@@ -163,8 +163,7 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
     // If there is a data in buffer, then copy data from
     // specified buffer and dump it to writer.
     if (self->length && len >= available_to_write) {
-        memcpy(self->bytes + self->length,
-                buf_ptr, available_to_write);
+        memcpy(self->bytes + self->length, buf_ptr, available_to_write);
 
         // Next call could fail, so increase length of the buffer.
         self->length = self->capacity;
@@ -221,8 +220,7 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
     // Get count of available in buffer bytes.
     size_t available_to_read = self->length - self->offset;
 
-    // If there is a data in buffer, then copy it to
-    // destination buffer.
+    // If there is a data in buffer, then copy it to the destination buffer.
     if (available_to_read > 0 && len > 0) {
         size_t bytes_to_copy = available_to_read;
 
@@ -298,8 +296,7 @@ huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte)
     routine_param_m(self);
     routine_param_m(byte);
 
-    huf_error_t err = huf_bufio_read(
-            self, byte, sizeof(uint8_t));
+    huf_error_t err = huf_bufio_read(self, byte, sizeof(uint8_t));
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }

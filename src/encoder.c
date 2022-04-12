@@ -162,8 +162,8 @@ huf_encoder_init(huf_encoder_t **self, const huf_config_t *config)
 
     // If size of encoding chunk set to zero then length of the
     // data to encode will be treated as size of the chunk.
-    if (!encoder_config->chunk_size) {
-        encoder_config->chunk_size = encoder_config->length;
+    if (!encoder_config->blocksize) {
+        encoder_config->blocksize = encoder_config->length;
     }
 
     self_ptr->config = encoder_config;
@@ -279,7 +279,7 @@ huf_encode(const huf_config_t *config)
         routine_error_m(err);
     }
 
-    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t), self->config->chunk_size);
+    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t), self->config->blocksize);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -288,7 +288,7 @@ huf_encode(const huf_config_t *config)
     size_t need_to_read;
 
     while (left_to_read > 0) {
-        need_to_read = self->config->chunk_size;
+        need_to_read = self->config->blocksize;
 
         if (left_to_read < need_to_read) {
             need_to_read = left_to_read;

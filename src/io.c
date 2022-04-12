@@ -168,6 +168,7 @@ huf_error_t huf_memrewind(huf_read_writer_t *self)
     routine_param_m(self);
 
     huf_membuf_t *mem = (huf_membuf_t*)self->stream;
+    mem->len = 0;
     mem->off = 0;
 
     routine_yield_m();
