@@ -1,7 +1,33 @@
+"""This module provides classes and convenience functions for compressing and
+decompressing data using Huffman compression algorithm.
+
+The interface provided by this module is very similar to that of the :mod:`bz2` module
+Note that :class:`HuffmanCompressor`, :class:`HuffmanDecompressor`, and
+:class:`HuffmanFile` are *not* thread-safe, so if you need to use a single instance
+of these classes from multiple threads, it is necessary to protect it with a lock.
+"""
+
+__all__ = [
+    "HuffmanError",
+    "HuffmanFile",
+    "HuffmanCompressor",
+    "HuffmanDecompressor",
+]
+
 import io
 import os
 
 from ._huffmanfile import ffi, lib
+
+
+class HuffmanError(Exception):
+    """The exception is raised when error occurs during compression or decompression."""
+
+
+def unwrap_exc(err, message):
+    if err != lib.HUF_ERROR_SUCCESS:
+        err_str = lib.huf_error_string(err)
+        raise HuffmanError(f"{err_str}. {message}")
 
 
 class HuffmanFile:
@@ -32,13 +58,15 @@ class IOStream:
         self._ptr = ffi.new("huf_read_writer_t **")
 
         err = lib.huf_memopen(self._ptr, self._buf_ptr, capacity)
+        unwrap_exc(err, f"Failed to allocate memory stream of {capacity} bytes long")
 
     @property
     def this(self):
         return self._ptr[0]
 
     def close(self):
-        lib.huf_memclose(self._ptr)
+        err = lib.huf_memclose(self._ptr)
+        unwrap_exc(err, "Failed to close memory stream")
 
     def getvalue(self):
         buf = ffi.cast("char *", self._buf_ptr[0])
@@ -46,6 +74,7 @@ class IOStream:
 
     def write(self, data):
         err = self.this.write(self.this.stream, data, len(data))
+        unwrap_exc(err, "Failed to write data to the memory stream")
 
     def seek(self, offset, whence=io.SEEK_SET):
         if whence != io.SEEK_SET:
@@ -58,12 +87,13 @@ class IOStream:
                 "Seek on in-memory stream allows only rewinds; got "
                 f"offset = {offset} which is not supported"
             )
-        lib.huf_memrewind(self.this)
+        err = lib.huf_memrewind(self.this)
+        unwrap_exc(err, "Failed to rewind memory stream")
 
     def __len__(self):
         err = lib.huf_memlen(self.this, self._len_ptr)
+        unwrap_exc(err, "Failed to retrieve length of the memory stream")
         return self._len_ptr[0]
-
 
 
 class HuffmanCompressor:
@@ -72,18 +102,19 @@ class HuffmanCompressor:
     This object may be used to compress data incrementally.
     """
 
-    def __init__(self, blocksize: int = 131072, bufscale: int = 2):
+    def __init__(self, blocksize, memlimit):
         self._blocksize = blocksize
+        self._flushed = False
 
-        self.istream = IOStream(blocksize * 2)
-        self.ostream = IOStream(blocksize * 2)
+        self.istream = IOStream(blocksize)
+        self.ostream = IOStream(blocksize)
 
         # Initialize the encoding configuration, it's the same for the whole
         # encoding process.
         self._config = ffi.new("huf_config_t *")
         self._config.blocksize = blocksize
-        self._config.reader_buffer_size = blocksize * 2 * bufscale
-        self._config.writer_buffer_size = blocksize * 2 * bufscale
+        self._config.reader_buffer_size = memlimit
+        self._config.writer_buffer_size = memlimit
         self._config.reader = self.istream.this
         self._config.writer = self.ostream.this
 
@@ -96,6 +127,10 @@ class HuffmanCompressor:
         When you have finished providing data to the compressor, call the `flush()`
         method to finish the compression process.
         """
+        encoding = bytes()
+        if self._flushed:
+            return encoding()
+
         buf_bytes = len(self.istream)
 
         # Calculate the amount of bytes ready for encoding considering the content
@@ -113,14 +148,13 @@ class HuffmanCompressor:
         print(f"data_bytes={len(data)}")
         print(f"num_blocks={num_blocks}, max_bytes={max_bytes}, rem_bytes={rem_bytes}")
 
-        encoding = bytes()
-
         if num_blocks > 0:
             self.istream.write(data[:max_bytes])
             print(f"input_len = {len(self.istream)}")
 
             self._config.length = num_bytes
             err = lib.huf_encode(self._config)
+            unwrap_exc(err, "Failed to encode the data")
 
             print(f"output_len = {len(self.ostream)}")
             encoding = self.ostream.getvalue()
@@ -144,15 +178,21 @@ class HuffmanCompressor:
         Returns the compressed data left in internal buffers. The compressor object
         may not be used after this method is called.
         """
-        self._config.length = len(self.istream)
         encoding = bytes()
+
+        if self._flushed:
+            return encoding
+
+        self._config.length = len(self.istream)
 
         if self._config.length > 0:
             err = lib.huf_encode(self._config)
+            unwrap_exc(err, "Failed to encode the data")
             encoding = self.ostream.getvalue()
 
         self.istream.close()
         self.ostream.close()
+        self._flushed = True
 
         return encoding
 
@@ -184,8 +224,36 @@ class HuffmanDecompressor:
         self._config.length = len(self.istream)
         print(f"input_len={self._config.length}")
         err = lib.huf_decode(self._config)
+        unwrap_exc(err, "Faild to decode the data")
 
         decoding = self.ostream.getvalue()
         self.ostream.seek(0)
 
         return decoding
+
+
+def compress(data, blocksize=131072, memlimit=262144):
+    """Compress *data* (a :class:`bytes` object), returning the compressed data as a
+    :class:`bytes` object.
+
+    See :class:`HuffmanCompressor` above for a description of the *blocksize* and
+    *memlimit* arguments.
+
+    For incremental compression, use :class:`HuffmanCompressor` instead.
+    """
+    comp = HuffmanCompressor(blocksize, memlimit)
+    return comp.compress(data) + comp.flush()
+
+
+def decompress(data, memlimit=262144):
+    """Decompress *data* (a :class:`bytes` object), returning the uncompressed data
+    as a :class:`bytes` object.
+
+    If *data* is the concatenation of multiple distinct compressed blocks,
+    decompress all of these blocks, and return the concatenation of the results.
+
+    See :class:`HuffmanDecompressor` above for a description of the *memlimit*
+    argument.
+    """
+    decomp = HuffmanDecompressor(memlimit)
+    return decomp.decompress(data)

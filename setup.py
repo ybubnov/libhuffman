@@ -29,7 +29,10 @@ setup(
     packages=["huffmanfile"],
     include_package_data=True,
     package_data={"build_tools": ["setup_ffi.py"]},
+
+    tests_require=["pytest"],
     install_requires=["cffi>=1.12.0"],
     setup_requires=["cffi>=1.12.0", "setuptools_scm"],
+
     cffi_modules=["setup_ffi.py:ffibuilder"],
 )
