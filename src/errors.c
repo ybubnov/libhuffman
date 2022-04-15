@@ -5,11 +5,13 @@
 static const char*
 __huf_error_map[] = {
     "Success",
-    "Failed to allocate the memory block",
+    "Failed to allocate the requested memory block",
     "An invalid argument was specified to the function",
     "Failed on read/write operation",
-    "Fatal failure",
-    "Unknown failure"
+    "Fatal error",
+    "Block is corrupted, Huffman tree has impossible size",
+    "Huffman tree is corrupted and cannot be used to decode the block",
+    "Unknown error"
 };
 
 
@@ -17,8 +19,7 @@ __huf_error_map[] = {
 const char*
 huf_error_string(huf_error_t error)
 {
-    size_t huf_error_map_len = (sizeof(__huf_error_map) 
-            / sizeof(*__huf_error_map));
+    size_t huf_error_map_len = (sizeof(__huf_error_map) / sizeof(*__huf_error_map));
 
     // Return "Uknown failure" if the specified error
     // values is not defined in the error list.

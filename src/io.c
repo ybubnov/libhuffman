@@ -6,8 +6,25 @@
 #include "huffman/malloc.h"
 
 
-huf_error_t fdwrite(void *stream, const void *buf, size_t count);
-huf_error_t fdread(void *stream, void *buf, size_t *count);
+huf_error_t fdwrite(void *stream, const void *buf, size_t count)
+{
+    size_t have_written = write(*(int*)stream, buf, count);
+    if (have_written != count) {
+        return HUF_ERROR_READ_WRITE;
+    }
+    return HUF_ERROR_SUCCESS;
+}
+
+
+huf_error_t fdread(void *stream, void *buf, size_t *count)
+{
+    size_t have_read = read(*(int*)stream, buf, *count);
+    *count = have_read;
+    if (have_read < 0) {
+        return HUF_ERROR_READ_WRITE;
+    }
+    return HUF_ERROR_SUCCESS;
+}
 
 
 huf_error_t huf_fdopen(huf_read_writer_t **self, int fd)
@@ -30,29 +47,6 @@ huf_error_t huf_fdopen(huf_read_writer_t **self, int fd)
     self_ptr->write = fdwrite;
 
     routine_yield_m();
-}
-
-
-huf_error_t fdwrite(void *stream, const void *buf, size_t count)
-{
-    size_t have_written = write(*(int*)stream, buf, count);
-    if (have_written < 0) {
-        return HUF_ERROR_READ_WRITE;
-    }
-    return HUF_ERROR_SUCCESS;
-}
-
-
-huf_error_t fdread(void *stream, void *buf, size_t *count)
-{
-    size_t have_read = read(*(int*)stream, buf, *count);
-    if (have_read < 0) {
-        *count = 0;
-        return HUF_ERROR_READ_WRITE;
-    }
-    
-    *count = have_read;
-    return HUF_ERROR_SUCCESS;
 }
 
 
@@ -83,6 +77,7 @@ huf_error_t memwrite(void *stream, const void *buf, size_t count)
 
     void *newbuf = NULL;
     size_t newcap = mem->cap * 2;
+
     if (count > newcap) {
         newcap = count * 2;
     }

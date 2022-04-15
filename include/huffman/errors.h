@@ -19,6 +19,11 @@ typedef enum {
 
     // Failure caused by Unrecoverable error.
     HUF_ERROR_FATAL,
+
+    // Returned when the size of the tree in the decoding block is
+    // larger than the maximum theoretical size (1024 bytes) or is zero.
+    HUF_ERROR_BTREE_OVERFLOW,
+    HUF_ERROR_BTREE_CORRUPTED,
 } huf_error_t;
 
 

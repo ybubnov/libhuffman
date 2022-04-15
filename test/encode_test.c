@@ -6,11 +6,46 @@
 
 #include <huffman.h>
 #include "assert.h"
-
+#include <stdio.h>
 
 
 static void
-test_encoder(void **state)
+test_encode_nobuffer(void **state)
+{
+    void *bufin, *bufout = NULL;
+    huf_read_writer_t *input, *output = NULL;
+
+    assert_ok(huf_memopen(&input, &bufin, 128));
+    assert_ok(huf_memopen(&output, &bufout, 128));
+
+    const char data[] = "teststring";
+    assert_ok(input->write(input->stream, data, sizeof(data)));
+
+    huf_config_t config = {
+        .length = sizeof(data),
+        .reader = input,
+        .writer = output,
+    };
+
+    assert_ok(huf_encode(&config));
+    
+    size_t encoding_len = 0;
+    assert_ok(huf_memlen(output, &encoding_len));
+    assert_int_equal(encoding_len, 72);
+
+    assert_ok(huf_memclose(&input));
+    assert_ok(huf_memclose(&output));
+
+    assert_null(input);
+    assert_null(output);
+
+    free(bufin);
+    free(bufout);
+}
+
+
+static void
+test_encode_decode(void **state)
 {
     void *bufin, *bufout = NULL;
 
@@ -61,7 +96,8 @@ test_encoder(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_encoder),
+        cmocka_unit_test(test_encode_nobuffer),
+        cmocka_unit_test(test_encode_decode),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

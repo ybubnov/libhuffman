@@ -55,16 +55,16 @@ huf_bufio_read_writer_init(
 
     *self = self_ptr;
 
-    err = huf_malloc(void_pptr_m(&self_ptr->bytes),
-            sizeof(uint8_t), capacity);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
+    // If zero value provided for capacity, then use 64 KiB buffer by default.
+    //if (!capacity) {
+    //    capacity = HUF_64KIB_BUFFER;
+    //}
 
-    // If zero value provided for capacity, then use
-    // 64 KiB buffer by default.
-    if (!capacity) {
-        capacity = HUF_64KIB_BUFFER;
+    if (capacity) {
+        err = huf_malloc(void_pptr_m(&self_ptr->bytes), sizeof(uint8_t), capacity);
+        if (err != HUF_ERROR_SUCCESS) {
+            routine_error_m(err);
+        }
     }
 
     self_ptr->capacity = capacity;
@@ -100,7 +100,7 @@ huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
     routine_param_m(self);
 
     // If the buffer is empty, there is nothing to do then.
-    if (self->length <= 0) {
+    if (self->length == 0) {
         routine_success_m();
     }
 
@@ -124,7 +124,7 @@ __huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
     routine_param_m(self);
 
     // Flush buffer if it is full.
-    if (self->length >= self->capacity) {
+    if (self->length >= self->capacity && self->length) {
         huf_error_t err = __write_m(self->read_writer, self->bytes, self->length);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
@@ -133,16 +133,19 @@ __huf_bufio_read_writer_flush(huf_bufio_read_writer_t *self)
         // Renew byte length
         self->have_been_processed += self->length;
         self->length = 0;
+
+        if (self->length) {
+            routine_error_m(HUF_ERROR_READ_WRITE);
+        }
     }
 
     routine_yield_m();
 }
 
 
-// Write the specified amount of bytes starting from the
-// provided pointer into the writer buffer. If the buffer
-// will be filled during the copying of bytes, it could be
-// flushed.
+// Write the specified amount of bytes starting from the provided pointer into the
+// writer buffer. If the buffer will be filled during the copying of bytes, it could
+// be flushed.
 huf_error_t
 huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 {
@@ -151,8 +154,7 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
     routine_param_m(self);
     routine_param_m(buf);
 
-    const uint8_t *buf_ptr = buf;
-
+    // Attempt to flush buffer if it's full.
     huf_error_t err = __huf_bufio_read_writer_flush(self);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
@@ -160,43 +162,30 @@ huf_bufio_write(huf_bufio_read_writer_t *self, const void *buf, size_t len)
 
     size_t available_to_write = self->capacity - self->length;
 
-    // If there is a data in buffer, then copy data from
-    // specified buffer and dump it to writer.
-    if (self->length && len >= available_to_write) {
-        memcpy(self->bytes + self->length, buf_ptr, available_to_write);
+    // If there is a space left in the buffer, then copy data from specified buffer.
+    if (self->capacity && len <= available_to_write) {
+        memcpy(self->bytes + self->length, buf, len);
 
-        // Next call could fail, so increase length of the buffer.
-        self->length = self->capacity;
+        self->length += len;
+        self->have_been_processed += len;
+        len = 0;
+    }
 
-        err = __write_m(self->read_writer, self->bytes, self->capacity);
+    // Dump the remaining data directly to the writer without copying into buffer.
+    if (len > 0) {
+        // Force flush of the existing bytes in a buffer.
+        err = huf_bufio_read_writer_flush(self);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        buf_ptr += available_to_write;
-        len -= available_to_write;
-
-        self->length = 0;
-        self->have_been_processed += self->capacity;
-    }
-
-    // All other data dump to writer withot copying into buffer.
-    while (len >= self->capacity) {
-        err = __write_m(self->read_writer, buf_ptr, self->capacity);
+        err = __write_m(self->read_writer, buf, len);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        buf_ptr += self->capacity;
-        len -= self->capacity;
-
-        self->have_been_processed += self->capacity;
+        self->have_been_processed += len;
     }
-
-    memcpy(self->bytes + self->length, buf_ptr, len);
-
-    self->length += len;
-    self->have_been_processed += len;
 
     routine_yield_m();
 }
@@ -239,9 +228,8 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
         len -= bytes_to_copy;
     }
 
-    // If request length was satisfied, then simply exit.
-    if (len <= 0) {
-        // Leave the routinetion with HUF_ERROR_SUCCESS.
+    // If requested length was satisfied, then simply exit.
+    if (len == 0) {
         routine_success_m();
     }
 
@@ -249,13 +237,20 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
     // than buffer capacity, then just read it directly to the
     // destination buffer.
     if (len >= self->capacity) {
-        err = __read_m(self->read_writer, buf_ptr, &len);
+        size_t rem_len = len;
+        err = __read_m(self->read_writer, buf_ptr, &rem_len);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         self->length = 0;
         self->offset = 0;
+
+        // The read operation should succeed on requested amount of bytes
+        // to read. If the request is not satisfied, return an error.
+        if (rem_len < len) {
+            routine_error_m(HUF_ERROR_READ_WRITE);
+        }
 
         // Leave the routinetion with HUF_ERROR_SUCCESS.
         routine_success_m();
@@ -270,6 +265,11 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
     err = __read_m(self->read_writer, self->bytes, &self->length);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
+    }
+
+    // There is still not enough memory to satisfy the request, exit with an error.
+    if (len > self->length) {
+        routine_error_m(HUF_ERROR_READ_WRITE);
     }
 
     memcpy(buf_ptr, self->bytes, len);
@@ -318,9 +318,17 @@ huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
         routine_error_m(err);
     }
 
-    // Put byte into the buffer.
-    self->bytes[self->length] = byte;
-    self->length++;
+    if (self->capacity) {
+        // Put byte into the buffer.
+        self->bytes[self->length] = byte;
+        self->length++;
+        routine_success_m();
+    }
+
+    err = __write_m(self->read_writer, self->bytes, self->length);
+    if (err != HUF_ERROR_SUCCESS) {
+        routine_error_m(err);
+    }
 
     routine_yield_m();
 }

@@ -54,8 +54,7 @@ huf_tree_init(huf_tree_t **self)
     routine_m();
     routine_param_m(self);
 
-    huf_error_t err = huf_malloc(void_pptr_m(self),
-            sizeof(huf_tree_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(self), sizeof(huf_tree_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -172,8 +171,7 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
         routine_success_m();
     }
 
-    huf_error_t err = huf_malloc(void_pptr_m(&node_ptr),
-            sizeof(huf_node_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(&node_ptr), sizeof(huf_node_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -190,8 +188,7 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
     left_branch_len = buf_len - 1;
 
     // Recursively de-serialize a left branch of the tree.
-    err = __huf_deserialize_tree(node_left,
-            buf_ptr, &left_branch_len);
+    err = __huf_deserialize_tree(node_left, buf_ptr, &left_branch_len);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -200,8 +197,7 @@ __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
     right_branch_len = buf_len - left_branch_len - 1;
 
     // Recursively de-serialize a right branch of the tree.
-    err = __huf_deserialize_tree(node_right,
-            buf_ptr, &right_branch_len);
+    err = __huf_deserialize_tree(node_right, buf_ptr, &right_branch_len);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -223,8 +219,7 @@ huf_tree_deserialize(huf_tree_t *self, const int16_t *buf, size_t len)
     routine_param_m(self);
     routine_param_m(buf);
 
-    huf_error_t err = __huf_deserialize_tree(
-            &self->root, buf, &len);
+    huf_error_t err = __huf_deserialize_tree(&self->root, buf, &len);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -253,8 +248,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
         int16_t *buf_ptr = buf + 1;
 
         // Serialize the left branch of the tree.
-        huf_error_t err = __huf_serialize_tree(
-                node->left, buf_ptr, &left_branch_len);
+        huf_error_t err = __huf_serialize_tree(node->left, buf_ptr, &left_branch_len);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -262,8 +256,7 @@ __huf_serialize_tree(const huf_node_t *node, int16_t *buf, size_t *len)
         buf_ptr += left_branch_len;
 
         // Serialize the right branch of the tree.
-        err = __huf_serialize_tree(node->right,
-                buf_ptr, &right_branch_len);
+        err = __huf_serialize_tree(node->right, buf_ptr, &right_branch_len);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -288,8 +281,7 @@ huf_tree_serialize(huf_tree_t *self, int16_t *buf, size_t *len)
     routine_param_m(buf);
     routine_param_m(len);
 
-    huf_error_t err = __huf_serialize_tree(
-            self->root, buf, len);
+    huf_error_t err = __huf_serialize_tree(self->root, buf, len);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -322,8 +314,7 @@ huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
     rates = histogram->frequencies;
 
     // Calculate the length of the shadow tree.
-    size_t shadow_tree_len = (sizeof(shadow_tree)
-            / sizeof(*shadow_tree));
+    size_t shadow_tree_len = (sizeof(shadow_tree) / sizeof(*shadow_tree));
 
     while (start < shadow_tree_len) {
         index1 = index2 = -1;

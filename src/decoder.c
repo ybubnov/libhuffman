@@ -65,6 +65,12 @@ __huf_decode_chunk(huf_decoder_t *self, size_t len)
                 self->last_node = self->last_node->left;
             }
 
+            // The decoding reached the bottom of the tree, but the decoding is
+            // not found. The tree is corrupted and cannot be used for decoding.
+            if (!self->last_node) {
+                routine_error_m(HUF_ERROR_BTREE_CORRUPTED);
+            }
+
             // Continue until the leaf (encoded byte) will be found.
             if (self->last_node->left || self->last_node->right) {
                 continue;
@@ -218,10 +224,19 @@ huf_decode(const huf_config_t *config)
             routine_error_m(err);
         }
 
+        //if (self->config->blocksize == 0) {
+        //    routine_error_m(HUF_ERROR_CORRUPTED);
+        //}
+
         // Read the length of the serialized Huffman tree.
         err = huf_bufio_read(self->bufio_reader, &tree_length, sizeof(tree_length));
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
+        }
+
+        // The length of the serialized Huffman tree can't be greater than 1024 bytes.
+        if (tree_length < 0 || tree_length > HUF_BTREE_LEN) {
+            routine_error_m(HUF_ERROR_BTREE_OVERFLOW);
         }
 
         // Allocate memory for serialized Huffman tree.

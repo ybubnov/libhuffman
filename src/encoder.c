@@ -65,15 +65,13 @@ __huf_create_char_coding(huf_encoder_t *self)
         }
 
         // Create mapping element and inialize it with coding string.
-        err = huf_symbol_mapping_element_init(
-                &element, coding, position);
+        err = huf_symbol_mapping_element_init(&element, coding, position);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         // Insert coding element to the symbol-aware position.
-        err = huf_symbol_mapping_insert(
-                self->mapping, index, element);
+        err = huf_symbol_mapping_insert(self->mapping, index, element);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -85,7 +83,7 @@ __huf_create_char_coding(huf_encoder_t *self)
 
 // Encode chunk of data.
 static huf_error_t
-__huf_encode_chunk(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
+__huf_encode_block(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
 {
     routine_m();
 
@@ -347,7 +345,7 @@ huf_encode(const huf_config_t *config)
         huf_bit_read_writer_reset(&self->bit_writer);
 
         // Write data
-        err = __huf_encode_chunk(self, buf, need_to_read);
+        err = __huf_encode_block(self, buf, need_to_read);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }

@@ -2,9 +2,9 @@
 decompressing data using Huffman compression algorithm.
 
 The interface provided by this module is very similar to that of the :mod:`bz2` module
-Note that :class:`HuffmanCompressor`, :class:`HuffmanDecompressor`, and
-:class:`HuffmanFile` are *not* thread-safe, so if you need to use a single instance
-of these classes from multiple threads, it is necessary to protect it with a lock.
+Note that `HuffmanCompressor`, `HuffmanDecompressor`, and `HuffmanFile` are *not*
+thread-safe, so if you need to use a single instance of these classes from multiple
+threads, it is necessary to protect it with a lock.
 """
 
 __all__ = [
@@ -145,18 +145,14 @@ class HuffmanCompressor:
         # to write the input stream until the next call.
         max_bytes = num_bytes - buf_bytes
         rem_bytes = len(data) - max_bytes
-        print(f"data_bytes={len(data)}")
-        print(f"num_blocks={num_blocks}, max_bytes={max_bytes}, rem_bytes={rem_bytes}")
 
         if num_blocks > 0:
             self.istream.write(data[:max_bytes])
-            print(f"input_len = {len(self.istream)}")
 
             self._config.length = num_bytes
             err = lib.huf_encode(self._config)
             unwrap_exc(err, "Failed to encode the data")
 
-            print(f"output_len = {len(self.ostream)}")
             encoding = self.ostream.getvalue()
 
             # Reset input stream, to write next time a new portion of data. Reset
@@ -214,15 +210,14 @@ class HuffmanDecompressor:
         self._config.writer = self.ostream.this
 
     def decompress(self, data: bytes) -> bytes:
-        """Decompress data (a bytes object), returning uncomressed data as bytes object.
+        """Decompress data (a `bytes` object), returning uncompressed data as `bytes`.
 
         If data is the concatenation of multiple distinct compressed blocks, decompress
         all of these blocks, and return the concatenation of the results.
         """
-
         self.istream.write(data)
         self._config.length = len(self.istream)
-        print(f"input_len={self._config.length}")
+
         err = lib.huf_decode(self._config)
         unwrap_exc(err, "Faild to decode the data")
 
@@ -233,26 +228,24 @@ class HuffmanDecompressor:
 
 
 def compress(data, blocksize=131072, memlimit=262144):
-    """Compress *data* (a :class:`bytes` object), returning the compressed data as a
-    :class:`bytes` object.
+    """Compress *data*, returning the compressed data as a `bytes` object.
 
-    See :class:`HuffmanCompressor` above for a description of the *blocksize* and
+    See `HuffmanCompressor` above for a description of the *blocksize* and
     *memlimit* arguments.
 
-    For incremental compression, use :class:`HuffmanCompressor` instead.
+    For incremental compression, use `HuffmanCompressor` instead.
     """
     comp = HuffmanCompressor(blocksize, memlimit)
     return comp.compress(data) + comp.flush()
 
 
 def decompress(data, memlimit=262144):
-    """Decompress *data* (a :class:`bytes` object), returning the uncompressed data
-    as a :class:`bytes` object.
+    """Decompress *data*, returning the uncompressed data as a `bytes` object.
 
     If *data* is the concatenation of multiple distinct compressed blocks,
     decompress all of these blocks, and return the concatenation of the results.
 
-    See :class:`HuffmanDecompressor` above for a description of the *memlimit*
+    See `HuffmanDecompressor` above for a description of the *memlimit*
     argument.
     """
     decomp = HuffmanDecompressor(memlimit)
