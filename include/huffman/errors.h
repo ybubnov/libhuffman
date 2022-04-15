@@ -1,6 +1,6 @@
 #ifndef INCLUDE_huffman_errors_h__
 #define INCLUDE_huffman_errors_h__
-
+#define CFFI_huffman_errors_h__
 
 // Enumeration of the possible errors.
 typedef enum {
@@ -19,6 +19,11 @@ typedef enum {
 
     // Failure caused by Unrecoverable error.
     HUF_ERROR_FATAL,
+
+    // Returned when the size of the tree in the decoding block is
+    // larger than the maximum theoretical size (1024 bytes) or is zero.
+    HUF_ERROR_BTREE_OVERFLOW,
+    HUF_ERROR_BTREE_CORRUPTED,
 } huf_error_t;
 
 
@@ -26,4 +31,5 @@ typedef enum {
 const char* huf_error_string(huf_error_t error);
 
 
+#undef CFFI_huffman_errors_h__
 #endif // INCLUDE_huffman_errors_h__

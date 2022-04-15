@@ -10,8 +10,7 @@ huf_config_init(huf_config_t **self)
     routine_m();
     routine_param_m(self);
 
-    huf_error_t err = huf_malloc(void_pptr_m(self),
-            sizeof(huf_config_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(self), sizeof(huf_config_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }

@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 
+
 #define void_pptr_m(pointer) ((void**)(pointer))
 
 

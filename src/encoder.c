@@ -11,14 +11,6 @@
 #include "huffman/tree.h"
 
 
-extern void
-huf_bit_write(huf_bit_read_writer_t *, uint8_t);
-
-
-extern void
-huf_bit_read_writer_reset(huf_bit_read_writer_t *);
-
-
 struct __huf_encoder {
     // Read-only field with encoder configuration.
     huf_config_t *config;
@@ -36,146 +28,12 @@ struct __huf_encoder {
     // Frequencies of the symbols occurrence.
     huf_histogram_t *histogram;
 
-    // Read-writer instance.
-    huf_read_writer_t *read_writer;
-
     // Buffered reader instance.
     huf_bufio_read_writer_t *bufio_writer;
 
     // Buffered writer instance.
     huf_bufio_read_writer_t *bufio_reader;
 };
-
-
-// Build a histogram by the frequency of symbol occurrence.
-static huf_error_t
-__huf_create_tree_by_histogram(huf_encoder_t *self)
-{
-    routine_m();
-
-    huf_error_t err;
-    huf_node_t *shadow_tree[HUF_ASCII_COUNT * 2] = {0};
-
-    size_t j;
-    int64_t rate, rate1, rate2;
-    int16_t index1, index2;
-    int16_t node = HUF_ASCII_COUNT;
-
-    size_t start;
-    uint64_t *rates = NULL;
-
-    routine_param_m(self);
-
-    // Create local copies of the histogram instance attibutes.
-    start = self->histogram->start;
-    rates = self->histogram->frequencies;
-
-    // Calculate the length of the shadow tree.
-    size_t shadow_tree_len = (sizeof(shadow_tree)
-            / sizeof(*shadow_tree));
-
-    while (start < shadow_tree_len) {
-        index1 = index2 = -1;
-        rate1 = rate2 = 0;
-
-        // Skip zero-value frequencies, since they are not
-        // paricipating in the building of the Huffman tree.
-        while (!rates[start]) {
-            start++;
-        }
-
-        // Find next minimum frequencies to construct a new tree node.
-        for (j = start; j < node; j++) {
-            rate = rates[j];
-
-            // Skip zero-value frequencies.
-            if (!rate) {
-                continue;
-            }
-
-            if (!rate1) {
-                // Initialize the first frequecy value first.
-                rate1 = rate;
-                index1 = j;
-            } else if (rate <= rate1) {
-                // Swap values of the rate1 and rate2.
-                rate2 = rate1;
-                rate1 = rate;
-                index2 = index1;
-                index1 = j;
-            } else if (!rate2 || rate <= rate2) {
-                // If the rate2 is lower, than found.
-                rate2 = rate;
-                index2 = j;
-            }
-        }
-
-        // Tree is constructed, leave the while loop.
-        if (index1 == -1 || index2 == -1) {
-            self->huffman_tree->root = shadow_tree[node - 1];
-            break;
-        }
-
-        if (!shadow_tree[index1]) {
-            // Allocate memory for the left child of the node.
-            err = huf_malloc(void_pptr_m(&shadow_tree[index1]),
-                    sizeof(huf_node_t), 1);
-            if (err != HUF_ERROR_SUCCESS) {
-                routine_error_m(err);
-            }
-        }
-
-        if (!shadow_tree[index2]) {
-            // Allocate memory for the right child of the node.
-            err = huf_malloc(void_pptr_m(&shadow_tree[index2]),
-                    sizeof(huf_node_t), 1);
-            if (err != HUF_ERROR_SUCCESS) {
-                routine_error_m(err);
-            }
-        }
-
-        // Allocate memory for the node itself.
-        err = huf_malloc(void_pptr_m(&shadow_tree[node]),
-                sizeof(huf_node_t), 1);
-        if (err != HUF_ERROR_SUCCESS) {
-            routine_error_m(err);
-        }
-
-        if (index1 < HUF_ASCII_COUNT) {
-            self->huffman_tree->leaves[index1] = shadow_tree[index1];
-        }
-
-        if (index2 < HUF_ASCII_COUNT) {
-            self->huffman_tree->leaves[index2] = shadow_tree[index2];
-        }
-
-        shadow_tree[index1]->parent = shadow_tree[node];
-        shadow_tree[index2]->parent = shadow_tree[node];
-        shadow_tree[node]->left = shadow_tree[index1];
-        shadow_tree[node]->right = shadow_tree[index2];
-
-        shadow_tree[index1]->index = index1;
-        shadow_tree[index2]->index = index2;
-        shadow_tree[node]->index = node;
-
-        rates[node] = rate1 + rate2;
-        rates[index1] = 0;
-        rates[index2] = 0;
-        node++;
-    }
-
-    routine_ensure_m();
-
-    // If the routine was interrupted by an error we should
-    // release the memory block occupied by the shadow tree.
-    if (routine_violation_m()) {
-        for (j = 0; j < shadow_tree_len; j++) {
-            free(shadow_tree[j]);
-        }
-    }
-
-    routine_defer_m();
-}
 
 
 // Create a mapping of 8-bit bytes to the Huffman encoding.
@@ -207,15 +65,13 @@ __huf_create_char_coding(huf_encoder_t *self)
         }
 
         // Create mapping element and inialize it with coding string.
-        err = huf_symbol_mapping_element_init(
-                &element, coding, position);
+        err = huf_symbol_mapping_element_init(&element, coding, position);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         // Insert coding element to the symbol-aware position.
-        err = huf_symbol_mapping_insert(
-                self->mapping, index, element);
+        err = huf_symbol_mapping_insert(self->mapping, index, element);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -227,9 +83,7 @@ __huf_create_char_coding(huf_encoder_t *self)
 
 // Encode chunk of data.
 static huf_error_t
-__huf_encode_chunk(
-        huf_encoder_t* self,
-        const uint8_t *buf, uint64_t len)
+__huf_encode_block(huf_encoder_t* self, const uint8_t *buf, uint64_t len)
 {
     routine_m();
 
@@ -244,24 +98,20 @@ __huf_encode_chunk(
 
     for (pos = 0; pos < len; pos++) {
         // Retrieve the next symbol coding element.
-        err = huf_symbol_mapping_get(self->mapping,
-                buf[pos], &element);
+        err = huf_symbol_mapping_get(self->mapping, buf[pos], &element);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
         for (index = element->length; index > 0; index--) {
             // Fill the next bit of the encoded byte.
-            huf_bit_write(&self->bit_writer,
-                    element->coding[index - 1]);
-
+            huf_bit_write(&self->bit_writer, element->coding[index - 1]);
             if (self->bit_writer.offset) {
                 continue;
             }
 
             // If buffer is full, then dump it to the writer buffer.
-            err = huf_bufio_write_uint8(self->bufio_writer,
-                    self->bit_writer.bits);
+            err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
             if (err != HUF_ERROR_SUCCESS) {
                 routine_error_m(err);
             }
@@ -271,8 +121,7 @@ __huf_encode_chunk(
     }
 
     if (self->bit_writer.offset != 8) {
-        err = huf_bufio_write_uint8(self->bufio_writer,
-                self->bit_writer.bits);
+        err = huf_bufio_write_uint8(self->bufio_writer, self->bit_writer.bits);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -284,9 +133,7 @@ __huf_encode_chunk(
 
 // Create a new instance of the Huffman encoder.
 huf_error_t
-huf_encoder_init(
-        huf_encoder_t **self,
-        const huf_config_t *config)
+huf_encoder_init(huf_encoder_t **self, const huf_config_t *config)
 {
     routine_m();
 
@@ -296,8 +143,7 @@ huf_encoder_init(
     routine_param_m(self);
     routine_param_m(config);
 
-    huf_error_t err = huf_malloc(void_pptr_m(&self_ptr),
-            sizeof(huf_encoder_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(&self_ptr), sizeof(huf_encoder_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -314,18 +160,11 @@ huf_encoder_init(
 
     // If size of encoding chunk set to zero then length of the
     // data to encode will be treated as size of the chunk.
-    if (!encoder_config->chunk_size) {
-        encoder_config->chunk_size = encoder_config->length;
+    if (!encoder_config->blocksize) {
+        encoder_config->blocksize = encoder_config->length;
     }
 
     self_ptr->config = encoder_config;
-
-    // Initialize read-writer instance.
-    err = huf_read_writer_init(&self_ptr->read_writer,
-            self_ptr->config->reader, config->writer);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
 
     // Allocate memory for Huffman tree.
     err = huf_tree_init(&self_ptr->huffman_tree);
@@ -333,15 +172,13 @@ huf_encoder_init(
         routine_error_m(err);
     }
 
-    err = huf_symbol_mapping_init(&self_ptr->mapping,
-            HUF_ASCII_COUNT);
+    err = huf_symbol_mapping_init(&self_ptr->mapping, HUF_ASCII_COUNT);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
 
     // Allocate memory for the frequency histogram.
-    err = huf_histogram_init(&self_ptr->histogram, 1,
-            HUF_HISTOGRAM_LEN);
+    err = huf_histogram_init(&self_ptr->histogram, 1, HUF_HISTOGRAM_LEN);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -349,7 +186,7 @@ huf_encoder_init(
     // Create buffered writer instance. If writer buffer size
     // set to zero, the 64 KiB buffer will be used by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_writer,
-            self_ptr->read_writer,
+            self_ptr->config->writer,
             self_ptr->config->writer_buffer_size);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
@@ -358,7 +195,7 @@ huf_encoder_init(
     // Create buffered reader instance. If reader buffer size
     // set to zero, the 64 KiB buffer will be used by default.
     err = huf_bufio_read_writer_init(&self_ptr->bufio_reader,
-            self_ptr->read_writer,
+            self_ptr->config->reader,
             self_ptr->config->reader_buffer_size);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
@@ -386,19 +223,12 @@ huf_encoder_free(huf_encoder_t **self)
         routine_error_m(err);
     }
 
-    err = huf_bufio_read_writer_free(
-            &self_ptr->bufio_writer);
+    err = huf_bufio_read_writer_free(&self_ptr->bufio_writer);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
 
-    err = huf_bufio_read_writer_free(
-            &self_ptr->bufio_reader);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
-
-    err = huf_read_writer_free(&self_ptr->read_writer);
+    err = huf_bufio_read_writer_free(&self_ptr->bufio_reader);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -447,8 +277,7 @@ huf_encode(const huf_config_t *config)
         routine_error_m(err);
     }
 
-    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t),
-            self->config->chunk_size);
+    err = huf_malloc(void_pptr_m(&buf), sizeof(uint8_t), self->config->blocksize);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -457,26 +286,24 @@ huf_encode(const huf_config_t *config)
     size_t need_to_read;
 
     while (left_to_read > 0) {
-        need_to_read = self->config->chunk_size;
+        need_to_read = self->config->blocksize;
 
         if (left_to_read < need_to_read) {
             need_to_read = left_to_read;
         }
 
         // Read the next chunk of data, that we are going to encode.
-        err = huf_bufio_read(self->bufio_reader,
-                buf, need_to_read);
+        err = huf_bufio_read(self->bufio_reader, buf, need_to_read);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        err = huf_histogram_populate(self->histogram,
-                buf, need_to_read);
+        err = huf_histogram_populate(self->histogram, buf, need_to_read);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        err = __huf_create_tree_by_histogram(self);
+        err = huf_tree_from_histogram(self->huffman_tree, self->histogram);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -487,8 +314,7 @@ huf_encode(const huf_config_t *config)
         }
 
         // Write serialized tree into buffer.
-        err = huf_tree_serialize(self->huffman_tree,
-                tree_head, &tree_length);
+        err = huf_tree_serialize(self->huffman_tree, tree_head, &tree_length);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -496,8 +322,7 @@ huf_encode(const huf_config_t *config)
         actual_tree_length = tree_length;
 
         // Write the size of the next chunk.
-        err = huf_bufio_write(self->bufio_writer,
-                &need_to_read, sizeof(need_to_read));
+        err = huf_bufio_write(self->bufio_writer, &need_to_read, sizeof(need_to_read));
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
@@ -520,7 +345,7 @@ huf_encode(const huf_config_t *config)
         huf_bit_read_writer_reset(&self->bit_writer);
 
         // Write data
-        err = __huf_encode_chunk(self, buf, need_to_read);
+        err = __huf_encode_block(self, buf, need_to_read);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }

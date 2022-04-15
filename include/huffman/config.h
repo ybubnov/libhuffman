@@ -5,6 +5,7 @@
 #include "huffman/errors.h"
 #include "huffman/io.h"
 
+#define CFFI_huffman_config_h__
 
 typedef struct __huf_encoder_config {
     // Count of the reader bytes to encode. This is the only
@@ -12,10 +13,10 @@ typedef struct __huf_encoder_config {
     // be compressed.
     uint64_t length;
 
-    // Size of the encoding chunk. If set to zero then
+    // Size of the encoding block. If set to zero then
     // length of the data to encode will be treated as
-    // size of the chunk.
-    uint64_t chunk_size;
+    // size of the block.
+    uint64_t blocksize;
 
     // Size of the reader buffer in bytes. If set to zero
     // then will be defaulted to 64 KiB.
@@ -27,11 +28,11 @@ typedef struct __huf_encoder_config {
 
     // Instance of the reader which will be used as
     // a provider of the input data.
-    huf_reader_t reader;
+    huf_read_writer_t *reader;
 
     // Instance of the writer which will be used as
     // a consumer of the Huffman-encoded data.
-    huf_writer_t writer;
+    huf_read_writer_t *writer;
 } huf_config_t;
 
 
@@ -45,4 +46,5 @@ huf_error_t
 huf_config_free(huf_config_t **self);
 
 
+#undef CFFI_huffman_config_h__
 #endif // INCLUDE_huffman_config_h__
