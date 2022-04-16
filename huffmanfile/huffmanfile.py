@@ -372,7 +372,7 @@ class HuffmanDecompressor:
     This object may be used to decompress data incrementally.
     """
 
-    def __init__(self, memlimit: int = DEFAULT_MEM_LIMIT):
+    def __init__(self, memlimit=DEFAULT_MEM_LIMIT):
         self.istream = MemStream(memlimit)
         self.ostream = MemStream(memlimit)
 
