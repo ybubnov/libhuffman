@@ -38,25 +38,40 @@ test_histogram_populate(void **state)
 
     uint32_t array1[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     huf_histogram_populate(histogram, array1, sizeof(array1));
-    assert_true(histogram->start == 0);
+    assert_int_equal(histogram->start, 0);
 
     // Validate the linear distribution of the elements.
     for (unsigned i = 0; i < histogram->length; i++) {
-        assert_true(histogram->frequencies[i] == 1);
+        assert_int_equal(histogram->frequencies[i], 1);
     }
 
     uint32_t array2[] = {0, 0, 1, 1, 8, 8, 8, 8};
     uint64_t rates2[] = {3, 3, 1, 1, 1, 1, 1, 1, 5, 1};
     huf_histogram_populate(histogram, array2, sizeof(array2));
-    assert_true(histogram->start == 0);
+    assert_int_equal(histogram->start, 0);
 
     // Validate the frequencies updates.
     for (unsigned i = 0; i < histogram->length; i++) {
-        assert_true(histogram->frequencies[i] == rates2[i]);
+        assert_int_equal(histogram->frequencies[i], rates2[i]);
     }
 
     huf_histogram_free(&histogram);
     assert_null(histogram);
+}
+
+
+static void
+test_histogram_single(void **state)
+{
+    huf_histogram_t *histogram = NULL;
+
+    huf_histogram_init(&histogram, 4, 10);
+
+    uint32_t array[] = {1, 1, 1, 1, 1};
+    huf_histogram_populate(histogram, array, sizeof(array));
+    assert_int_equal(histogram->frequencies[1], 5);
+
+    huf_histogram_free(&histogram);
 }
 
 
@@ -125,6 +140,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_histogram_allocation),
         cmocka_unit_test(test_histogram_populate),
+        cmocka_unit_test(test_histogram_single),
         cmocka_unit_test(test_histogram_start),
         cmocka_unit_test(test_histogram_reset),
     };

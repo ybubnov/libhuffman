@@ -32,7 +32,7 @@ struct __huf_decoder {
 
 // Decode the chunk of data.
 static huf_error_t
-__huf_decode_chunk(huf_decoder_t *self, size_t len)
+__huf_decode_block(huf_decoder_t *self, size_t len)
 {
     routine_m();
 
@@ -48,7 +48,6 @@ __huf_decode_chunk(huf_decoder_t *self, size_t len)
     if (!self->last_node) {
         self->last_node = self->huffman_tree->root;
     }
-
     while (restored < len) {
         // Read the next chunk of bit stream.
         err = huf_bufio_read_uint8(self->bufio_reader, &byte);
@@ -259,7 +258,7 @@ huf_decode(const huf_config_t *config)
         }
 
         // Decode the next chunk of data.
-        err = __huf_decode_chunk(self, self->config->blocksize);
+        err = __huf_decode_block(self, self->config->blocksize);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }

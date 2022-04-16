@@ -7,9 +7,7 @@
 
 // Initialize a new instance of the frequency histogram.
 huf_error_t
-huf_histogram_init(
-        huf_histogram_t **self,
-        size_t iota, size_t length)
+huf_histogram_init(huf_histogram_t **self, size_t iota, size_t length)
 {
     routine_m();
 
@@ -17,16 +15,14 @@ huf_histogram_init(
     routine_param_m(iota);
     routine_param_m(length);
 
-    huf_error_t err = huf_malloc(void_pptr_m(self),
-            sizeof(huf_histogram_t), 1);
+    huf_error_t err = huf_malloc(void_pptr_m(self), sizeof(huf_histogram_t), 1);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
 
     huf_histogram_t *self_ptr = *self;
 
-    err = huf_malloc(void_pptr_m(&self_ptr->frequencies),
-            sizeof(uint64_t), length);
+    err = huf_malloc(void_pptr_m(&self_ptr->frequencies), sizeof(uint64_t), length);
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
@@ -75,9 +71,7 @@ huf_histogram_reset(huf_histogram_t *self)
 // chart by one if the element was found in the specified
 // buffer.
 huf_error_t
-huf_histogram_populate(
-        huf_histogram_t *self,
-        void *buf, size_t len)
+huf_histogram_populate(huf_histogram_t *self, void *buf, size_t len)
 {
     routine_m();
 
