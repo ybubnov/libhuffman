@@ -427,4 +427,6 @@ def decompress(data, memlimit=DEFAULT_MEM_LIMIT):
     argument.
     """
     decomp = HuffmanDecompressor(memlimit)
-    return decomp.decompress(data)
+    data_out = decomp.decompress(data)
+    decomp.close()
+    return data_out
