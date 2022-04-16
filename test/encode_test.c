@@ -76,10 +76,8 @@ test_encode_decode(void **state)
     config.writer = input;
     config.length = encoding_len;
 
-    printf("ENCODED %d bytes!\n", encoding_len);
     assert_ok(huf_decode(&config));
 
-    printf("DECODED!\n");
     // Ensure that decoding result is the same as the encoded string.
     // Put an extra character for a null-terminated string comparison.
     char result[11] = {0};
