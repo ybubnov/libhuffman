@@ -22,7 +22,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          rm -r .eggs
+          rm -rf .eggs
           python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: ${{ matrix.cibw_python }}
