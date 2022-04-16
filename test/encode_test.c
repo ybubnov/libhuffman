@@ -18,11 +18,12 @@ test_encode_nobuffer(void **state)
     assert_ok(huf_memopen(&input, &bufin, 128));
     assert_ok(huf_memopen(&output, &bufout, 128));
 
-    const char data[] = "teststring";
-    assert_ok(input->write(input->stream, data, sizeof(data)));
+    // Encode only a single symbol.
+    assert_ok(input->write(input->stream, "1", 1));
 
     huf_config_t config = {
-        .length = sizeof(data),
+        .blocksize = 256,
+        .length = 1,
         .reader = input,
         .writer = output,
     };
@@ -31,7 +32,7 @@ test_encode_nobuffer(void **state)
     
     size_t encoding_len = 0;
     assert_ok(huf_memlen(output, &encoding_len));
-    assert_int_equal(encoding_len, 72);
+    assert_int_equal(encoding_len, 21);
 
     assert_ok(huf_memclose(&input));
     assert_ok(huf_memclose(&output));
@@ -58,7 +59,7 @@ test_encode_decode(void **state)
     huf_config_t config = {
         .length = 10,
         .reader_buffer_size = 128,
-        .writer_buffer_size = 2048,
+        .writer_buffer_size = 128,
         .reader = input,
         .writer = output,
     };
@@ -75,8 +76,10 @@ test_encode_decode(void **state)
     config.writer = input;
     config.length = encoding_len;
 
+    printf("ENCODED %d bytes!\n", encoding_len);
     assert_ok(huf_decode(&config));
 
+    printf("DECODED!\n");
     // Ensure that decoding result is the same as the encoded string.
     // Put an extra character for a null-terminated string comparison.
     char result[11] = {0};

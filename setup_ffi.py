@@ -12,7 +12,7 @@ def make_library_prototypes(headers: List[str]) -> str:
         with open(f"include/{header}") as header_file:
             include_statement: bool = False
             for line in header_file.readlines():
-                # Exclude derictives as long as they are not supported by FFI.
+                # Exclude directives as long as they are not supported by FFI.
                 if line.startswith("#define CFFI"):
                     include_statement = True
                     continue
@@ -58,7 +58,7 @@ sources = [
 
 ffibuilder = cffi.FFI()
 ffibuilder.set_source(
-    "huffmanfile._huffmanfile",
+    "huffmanfile._C",
     make_library_header(headers),
     include_dirs=["include"],
     sources=sources,

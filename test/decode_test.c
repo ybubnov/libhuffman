@@ -38,7 +38,9 @@ test_decoder_corrupted(void **state)
     // Now write a piece of "arbitrary" data to the input stream and
     // ensure that an error is returned after attempt to decoding
     // instead of a segmentation fault.
-    const uint8_t arbitrary_data[] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+    const uint8_t arbitrary_data[] = {
+        10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+    };
     assert_ok(input->write(input->stream, arbitrary_data, sizeof(arbitrary_data)));
 
     config.length = sizeof(arbitrary_data);
@@ -46,7 +48,9 @@ test_decoder_corrupted(void **state)
 
     // Reset the input, and write the acceptable length of the Huffman tree
     // but in the new case, the tree itself, is corrupted.
-    const uint8_t truncated_data[] = {8, 0, 0, 0, 0, 0, 0, 0, 8, 0, 10, 10, 10, 10};
+    const uint8_t truncated_data[] = {
+        8, 0, 0, 0, 0, 0, 0, 0, 8, 0, 10, 10, 10, 10
+    };
     assert_ok(huf_memrewind(input));
     assert_ok(input->write(input->stream, truncated_data, sizeof(truncated_data)));
 

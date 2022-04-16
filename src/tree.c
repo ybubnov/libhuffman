@@ -134,8 +134,7 @@ huf_tree_reset(huf_tree_t *self)
 }
 
 
-// Recursively de-serialize the Huffman tree into the
-// provided buffer.
+// Recursively de-serialize the Huffman tree from the provided buffer.
 static huf_error_t
 __huf_deserialize_tree(huf_node_t **node, const int16_t *buf, size_t *len)
 {
@@ -321,7 +320,7 @@ huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
         rate1 = rate2 = 0;
 
         // Skip zero-value frequencies, since they are not
-        // paricipating in the building of the Huffman tree.
+        // participating in the building of the Huffman tree.
         while (!rates[start]) {
             start++;
         }
@@ -336,7 +335,7 @@ huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
             }
 
             if (!rate1) {
-                // Initialize the first frequecy value first.
+                // Initialize the first frequency value first.
                 rate1 = rate;
                 index1 = j;
             } else if (rate <= rate1) {
@@ -353,57 +352,65 @@ huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
         }
 
         // Tree is constructed, leave the while loop.
-        if (index1 == -1 || index2 == -1) {
+        if (index1 == -1 && index2 == -1) {
             self->root = shadow_tree[node - 1];
             break;
         }
 
-        if (!shadow_tree[index1]) {
+        if (index1 > -1 && !shadow_tree[index1]) {
             // Allocate memory for the left child of the node.
-            err = huf_malloc(void_pptr_m(&shadow_tree[index1]),
-                    sizeof(huf_node_t), 1);
+            err = huf_malloc(void_pptr_m(&shadow_tree[index1]), sizeof(huf_node_t), 1);
             if (err != HUF_ERROR_SUCCESS) {
                 routine_error_m(err);
             }
         }
 
-        if (!shadow_tree[index2]) {
+        if (index2 > -1 && !shadow_tree[index2]) {
             // Allocate memory for the right child of the node.
-            err = huf_malloc(void_pptr_m(&shadow_tree[index2]),
-                    sizeof(huf_node_t), 1);
+            err = huf_malloc(void_pptr_m(&shadow_tree[index2]), sizeof(huf_node_t), 1);
             if (err != HUF_ERROR_SUCCESS) {
                 routine_error_m(err);
             }
         }
 
         // Allocate memory for the node itself.
-        err = huf_malloc(void_pptr_m(&shadow_tree[node]),
-                sizeof(huf_node_t), 1);
+        err = huf_malloc(void_pptr_m(&shadow_tree[node]), sizeof(huf_node_t), 1);
         if (err != HUF_ERROR_SUCCESS) {
             routine_error_m(err);
         }
 
-        if (index1 < HUF_ASCII_COUNT) {
+        if (index1 > -1 && index1 < HUF_ASCII_COUNT) {
             self->leaves[index1] = shadow_tree[index1];
         }
 
-        if (index2 < HUF_ASCII_COUNT) {
+        if (index2 > -1 && index2 < HUF_ASCII_COUNT) {
             self->leaves[index2] = shadow_tree[index2];
         }
 
-        shadow_tree[index1]->parent = shadow_tree[node];
-        shadow_tree[index2]->parent = shadow_tree[node];
-        shadow_tree[node]->left = shadow_tree[index1];
-        shadow_tree[node]->right = shadow_tree[index2];
+        shadow_tree[node]->left = NULL;
+        shadow_tree[node]->right = NULL;
+        if (index1 > -1) {
+            shadow_tree[index1]->parent = shadow_tree[node];
+            shadow_tree[index1]->index = index1;
+            shadow_tree[node]->left = shadow_tree[index1];
+            rates[index1] = 0;
+        }
 
-        shadow_tree[index1]->index = index1;
-        shadow_tree[index2]->index = index2;
+        if (index2 > -1) {
+            shadow_tree[index2]->parent = shadow_tree[node];
+            shadow_tree[index2]->index = index2;
+            shadow_tree[node]->right = shadow_tree[index2];
+            rates[index2] = 0;
+        }
+
         shadow_tree[node]->index = node;
-
         rates[node] = rate1 + rate2;
-        rates[index1] = 0;
-        rates[index2] = 0;
         node++;
+
+        if (index1 > -1 && index2 == -1) {
+            self->root = shadow_tree[node - 1];
+            break;
+        }
     }
 
     routine_ensure_m();

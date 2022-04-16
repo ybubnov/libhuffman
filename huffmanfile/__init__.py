@@ -1,7 +1,1 @@
-from .huffmanfile import HuffmanCompressor, HuffmanDecompressor
-
-
-__all__ = [
-    "HuffmanCompressor",
-    "HuffmanDecompressor"
-]
+from .huffmanfile import *  # noqa

@@ -12,12 +12,14 @@ __all__ = [
     "HuffmanFile",
     "HuffmanCompressor",
     "HuffmanDecompressor",
+    "compress",
+    "decompress",
 ]
 
 import io
 import os
 
-from ._huffmanfile import ffi, lib
+from ._C import ffi, lib
 
 
 class HuffmanError(Exception):
@@ -26,8 +28,8 @@ class HuffmanError(Exception):
 
 def unwrap_exc(err, message):
     if err != lib.HUF_ERROR_SUCCESS:
-        err_str = lib.huf_error_string(err)
-        raise HuffmanError(f"{err_str}. {message}")
+        err_str = ffi.string(lib.huf_error_string(err))
+        raise HuffmanError(f"{err_str.decode('utf-8')}. {message}")
 
 
 class HuffmanFile:
@@ -102,7 +104,7 @@ class HuffmanCompressor:
     This object may be used to compress data incrementally.
     """
 
-    def __init__(self, blocksize, memlimit):
+    def __init__(self, blocksize=131072):
         self._blocksize = blocksize
         self._flushed = False
 
@@ -113,8 +115,8 @@ class HuffmanCompressor:
         # encoding process.
         self._config = ffi.new("huf_config_t *")
         self._config.blocksize = blocksize
-        self._config.reader_buffer_size = memlimit
-        self._config.writer_buffer_size = memlimit
+        self._config.reader_buffer_size = 0
+        self._config.writer_buffer_size = 0
         self._config.reader = self.istream.this
         self._config.writer = self.ostream.this
 
@@ -204,8 +206,8 @@ class HuffmanDecompressor:
         self.ostream = IOStream(memlimit)
 
         self._config = ffi.new("huf_config_t *")
-        self._config.reader_buffer_size = memlimit * 2
-        self._config.writer_buffer_size = memlimit * 2
+        self._config.reader_buffer_size = 0
+        self._config.writer_buffer_size = 0
         self._config.reader = self.istream.this
         self._config.writer = self.ostream.this
 
@@ -219,7 +221,7 @@ class HuffmanDecompressor:
         self._config.length = len(self.istream)
 
         err = lib.huf_decode(self._config)
-        unwrap_exc(err, "Faild to decode the data")
+        unwrap_exc(err, "Failed to decode the data")
 
         decoding = self.ostream.getvalue()
         self.ostream.seek(0)
@@ -227,15 +229,14 @@ class HuffmanDecompressor:
         return decoding
 
 
-def compress(data, blocksize=131072, memlimit=262144):
+def compress(data, blocksize=131072):
     """Compress *data*, returning the compressed data as a `bytes` object.
 
-    See `HuffmanCompressor` above for a description of the *blocksize* and
-    *memlimit* arguments.
+    See `HuffmanCompressor` above for a description of the *blocksize* argument.
 
     For incremental compression, use `HuffmanCompressor` instead.
     """
-    comp = HuffmanCompressor(blocksize, memlimit)
+    comp = HuffmanCompressor(blocksize)
     return comp.compress(data) + comp.flush()
 
 

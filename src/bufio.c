@@ -252,7 +252,7 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
             routine_error_m(HUF_ERROR_READ_WRITE);
         }
 
-        // Leave the routinetion with HUF_ERROR_SUCCESS.
+        // Leave the routine with HUF_ERROR_SUCCESS.
         routine_success_m();
     }
 
@@ -287,8 +287,7 @@ huf_bufio_read(huf_bufio_read_writer_t *self, void *buf, size_t len)
 }
 
 
-// Read the 8-bits word from the reader buffer into the
-// specified pointer.
+// Read the 8-bits word from the reader buffer into the specified pointer.
 huf_error_t
 huf_bufio_read_uint8(huf_bufio_read_writer_t *self, uint8_t *byte)
 {
@@ -312,20 +311,7 @@ huf_bufio_write_uint8(huf_bufio_read_writer_t *self, uint8_t byte)
     routine_m();
     routine_param_m(self);
 
-    // Flush buffer if it is full.
-    huf_error_t err = __huf_bufio_read_writer_flush(self);
-    if (err != HUF_ERROR_SUCCESS) {
-        routine_error_m(err);
-    }
-
-    if (self->capacity) {
-        // Put byte into the buffer.
-        self->bytes[self->length] = byte;
-        self->length++;
-        routine_success_m();
-    }
-
-    err = __write_m(self->read_writer, self->bytes, self->length);
+    huf_error_t err = huf_bufio_write(self, &byte, sizeof(uint8_t));
     if (err != HUF_ERROR_SUCCESS) {
         routine_error_m(err);
     }
