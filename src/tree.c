@@ -308,7 +308,7 @@ huf_tree_from_histogram(huf_tree_t *self, huf_histogram_t *histogram)
     routine_param_m(self);
     routine_param_m(histogram);
 
-    // Create local copies of the histogram instance attibutes.
+    // Create local copies of the histogram instance attributes.
     start = histogram->start;
     rates = histogram->frequencies;
 

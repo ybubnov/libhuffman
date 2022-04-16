@@ -15,10 +15,10 @@ test_tree_from_histogram(void **state)
     huf_histogram_t *hist = NULL;
     huf_tree_t *tree = NULL;
 
-    assert_ok(huf_histogram_init(&hist, 4, 10));
+    assert_ok(huf_histogram_init(&hist, 1, HUF_HISTOGRAM_LEN));
     assert_ok(huf_tree_init(&tree));
 
-    uint32_t array[] = {3, 3, 3, 3};
+    uint8_t array[] = {3, 3, 3, 3};
     assert_ok(huf_histogram_populate(hist, array, sizeof(array)));
     assert_ok(huf_tree_from_histogram(tree, hist));
 
