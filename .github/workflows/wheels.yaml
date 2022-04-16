@@ -9,6 +9,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        cibw_python: ["cp37-*", "cp38-*", "cp39-*"]
+        cibw_arch: ["x86_64"]
 
     steps:
       - uses: actions/checkout@v2
@@ -20,6 +22,9 @@ jobs:
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: ${{ matrix.cibw_python }}
+          CIBW_ARCHS: ${{ matrix.cibw_arch }}
 
       - uses: actions/upload-artifact@v2
         with:
