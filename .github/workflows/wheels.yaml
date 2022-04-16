@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        cibw_python: ["cp37-*", "cp38-*", "cp39-*"]
+        cibw_python: ["cp37-*", "cp38-*"]
         cibw_arch: ["x86_64"]
 
     steps:
