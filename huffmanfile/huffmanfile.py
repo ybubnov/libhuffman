@@ -18,8 +18,13 @@ __all__ = [
 
 import io
 import os
+from builtins import open as builtin_open
 
 from ._C import ffi, lib
+
+
+DEFAULT_BLOCK_SIZE = 131072
+DEFAULT_MEM_LIMIT = 262144
 
 
 class HuffmanError(Exception):
@@ -32,20 +37,186 @@ def unwrap_exc(err, message):
         raise HuffmanError(f"{err_str.decode('utf-8')}. {message}")
 
 
-class HuffmanFile:
+_MODE_CLOSED = 0
+_MODE_READ = 1
+_MODE_WRITE = 2
 
-    def __init__(self, filename, mode="w"):
+
+class HuffmanFile(io.BufferedIOBase):
+    """A file object providing transparent Huffman (de)compression.
+
+    A HuffmanFile can act as a wrapper for an existing file object, or refer
+    directly to a named file on disk.
+
+    Note that HuffmanFile provides a *binary* file interface - data read is
+    returned as bytes, and data to be written should be given as bytes.
+    """
+
+    def __init__(self, filename, mode="w", blocksize=DEFAULT_BLOCK_SIZE,
+                 memlimit=DEFAULT_MEM_LIMIT):
         """Open a Huffman-compressed file.
-
         """
+        self._fp = None
+        self._mode = _MODE_CLOSED
+        self._closefp = False
+
+        if mode in ("", "r", "rb"):
+            mode = "rb"
+            mode_code = _MODE_READ
+            self._decompressor = HuffmanDecompressor(memlimit)
+        elif mode in ("w", "wb"):
+            mode = "wb"
+            mode_code = _MODE_WRITE
+            self._compressor = HuffmanCompressor(blocksize)
+        elif mode in ("x", "xb"):
+            mode = "xb"
+            mode_code = _MODE_WRITE
+            self._compressor = HuffmanCompressor(blocksize)
+        elif mode in ("a", "ab"):
+            mode = "ab"
+            mode_code = _MODE_WRITE
+            self._compressor = HuffmanCompressor(blocksize)
+        else:
+            raise ValueError("Invalid mode: %r" % (mode,))
+
         if isinstance(filename, (str, bytes, os.PathLike)):
-            self._fp = open(filename, mode)
-            self._mode = mode 
+            self._fp = builtin_open(filename, mode)
+            self._closefp = True
+            self._mode = mode_code
+        elif hasattr(filename, "read") or hasattr(filename, "write"):
+            self._fp = filename
+            self._mode = mode_code
         else:
             raise TypeError("filename must be a str, bytes, file or PathLike object")
 
+    def close(self):
+        """Flush and close the file.
 
-class IOStream:
+        May be called more than once without error. Once the file is closed,
+        any other operation on it will raise a ValueError.
+        """
+        if self._mode == _MODE_CLOSED:
+            return
+        try:
+            if self._mode == _MODE_READ:
+                self._decompressor.close()
+                self._decompressor = None
+            elif self._mode == _MODE_WRITE:
+                self._fp.write(self._compressor.flush())
+                self._compressor = None
+        finally:
+            try:
+                if self._closefp:
+                    self._fp.close()
+            finally:
+                self._fp = None
+                self._closefp = False
+                self._mode = _MODE_CLOSED
+
+    @property
+    def closed(self):
+        """True if this file is closed."""
+        return self._mode == _MODE_CLOSED
+
+    def _check_not_closed(self):
+        if self.closed:
+            raise ValueError("I/O operation on closed file")
+
+    def fileno(self):
+        """Return the file descriptor for the underlying file."""
+        self._check_not_closed()
+        return self._fp.fileno()
+
+    def seekable(self):
+        """Return whether the file supports seeking."""
+        return False
+
+    def readable(self):
+        """Return whether the file was opened for reading."""
+        self._check_not_closed()
+        return self._mode == _MODE_READ
+
+    def _check_can_read(self):
+        if not self.readable():
+            raise io.UnsupportedOperation("File not open for reading")
+
+    def writable(self):
+        """Return whether the file was opened for writing."""
+        self._check_not_closed()
+        return self._mode == _MODE_WRITE
+
+    def _check_can_write(self):
+        if not self.writable():
+            raise io.UnsupportedOperation("File not open for writing")
+
+    def read(self, size=-1):
+        """Read up to size uncompressed bytes from the file.
+
+        If size is negative or omitted, read until EOF is reached.
+        Returns b"" if the file is already at EOF.
+        """
+        self._check_can_read()
+        if size < 0:
+            size = io.DEFAULT_BUFFER_SIZE
+        data = self._fp.read(size)
+        return self._decompressor.decompress(data)
+
+    def write(self, data):
+        """Write a byte string to the file.
+
+        Returns the number of uncompressed bytes written, which is always the
+        length of data in bytes. Note that due to buffering, the file on disk
+        may not reflect the data written until close() is called.
+        """
+        self._check_can_write()
+        if isinstance(data, (bytes, bytearray)):
+            length = len(data)
+        else:
+            # Accept any data that supports the buffer protocol.
+            data = memoryview(data)
+            length = data.nbytes
+
+        compressed = self._compressor.compress(data)
+        self._fp.write(compressed)
+        return length
+
+
+def open(filename, mode="rb", encoding=None, errors=None, newline=None):
+    """Open a bzip2-compressed file in binary or text mode.
+
+    The filename argument can be an actual filename (a str, bytes, or PathLike object),
+    or an existing file object to read from or write to.
+
+    The mode argument can be "r", "rb", "w", "wb", "x", "xb", "a" or "ab" for binary
+    mode, or "rt", "wt", "xt" or "at" for text mode. The default mode is "rb".
+
+    For binary mode, this function is equivalent to the HuffmanFile constructor:
+    HuffmanFile(filename, mode). In this case, the encoding, errors and newline
+    arguments must not be provided.
+
+    For text mode, a HuffmanFile object is created, and wrapped in an io.TextIOWrapper
+    instance with the specified encoding, error handling behavior, and line ending(s).
+    """
+    if "t" in mode and "b" in mode:
+        raise ValueError("Invalid mode: %r" % (mode,))
+    else:
+        if encoding is not None:
+            raise ValueError("Argument 'encoding' not supported in binary mode")
+        if errors is not None:
+            raise ValueError("Argument 'errors' not supported in binary mode")
+        if newline is not None:
+            raise ValueError("Argument 'newline' not supported in binary mode")
+
+    file_mode = mode.replace("t", "")
+    binary_file = HuffmanFile(filename, file_mode)
+
+    if "t" in mode:
+        return io.TextIOWrapper(binary_file, encoding, errors, newline)
+    else:
+        return binary_file
+
+
+class MemStream:
 
     __slots__ = ["_len_ptr", "_buf_ptr", "_ptr"]
 
@@ -104,12 +275,12 @@ class HuffmanCompressor:
     This object may be used to compress data incrementally.
     """
 
-    def __init__(self, blocksize=131072):
+    def __init__(self, blocksize=DEFAULT_BLOCK_SIZE):
         self._blocksize = blocksize
         self._flushed = False
 
-        self.istream = IOStream(blocksize)
-        self.ostream = IOStream(blocksize)
+        self.istream = MemStream(blocksize)
+        self.ostream = MemStream(blocksize)
 
         # Initialize the encoding configuration, it's the same for the whole
         # encoding process.
@@ -120,7 +291,7 @@ class HuffmanCompressor:
         self._config.reader = self.istream.this
         self._config.writer = self.ostream.this
 
-    def compress(self, data: bytes) -> bytes:
+    def compress(self, data):
         """Provide data to the compressor object.
 
         Returns a block of compressed data if possible, or an empty byte string 
@@ -170,7 +341,7 @@ class HuffmanCompressor:
 
         return encoding
     
-    def flush(self) -> bytes:
+    def flush(self):
         """Finish the compression process.
 
         Returns the compressed data left in internal buffers. The compressor object
@@ -201,9 +372,9 @@ class HuffmanDecompressor:
     This object may be used to decompress data incrementally.
     """
 
-    def __init__(self, memlimit: int = 131072):
-        self.istream = IOStream(memlimit)
-        self.ostream = IOStream(memlimit)
+    def __init__(self, memlimit=DEFAULT_MEM_LIMIT):
+        self.istream = MemStream(memlimit)
+        self.ostream = MemStream(memlimit)
 
         self._config = ffi.new("huf_config_t *")
         self._config.reader_buffer_size = 0
@@ -211,7 +382,7 @@ class HuffmanDecompressor:
         self._config.reader = self.istream.this
         self._config.writer = self.ostream.this
 
-    def decompress(self, data: bytes) -> bytes:
+    def decompress(self, data):
         """Decompress data (a `bytes` object), returning uncompressed data as `bytes`.
 
         If data is the concatenation of multiple distinct compressed blocks, decompress
@@ -228,8 +399,14 @@ class HuffmanDecompressor:
 
         return decoding
 
+    def close(self):
+        """Release the decompressor resources."""
+        self._closed = True
+        self.istream.close()
+        self.ostream.close()
 
-def compress(data, blocksize=131072):
+
+def compress(data, blocksize=DEFAULT_BLOCK_SIZE):
     """Compress *data*, returning the compressed data as a `bytes` object.
 
     See `HuffmanCompressor` above for a description of the *blocksize* argument.
@@ -240,7 +417,7 @@ def compress(data, blocksize=131072):
     return comp.compress(data) + comp.flush()
 
 
-def decompress(data, memlimit=262144):
+def decompress(data, memlimit=DEFAULT_MEM_LIMIT):
     """Decompress *data*, returning the uncompressed data as a `bytes` object.
 
     If *data* is the concatenation of multiple distinct compressed blocks,
@@ -250,4 +427,6 @@ def decompress(data, memlimit=262144):
     argument.
     """
     decomp = HuffmanDecompressor(memlimit)
-    return decomp.decompress(data)
+    data_out = decomp.decompress(data)
+    decomp.close()
+    return data_out
