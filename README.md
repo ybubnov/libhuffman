@@ -88,7 +88,7 @@ Creating a compressed file:
 ```py
 import huffmanfile
 data = b"Insert Data Here"
-with huffmanfile.open(file.hm", "w") as f:
+with huffmanfile.open("file.hm", "w") as f:
     f.write(data)
 ```
 
