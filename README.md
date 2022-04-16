@@ -77,46 +77,42 @@ library.
 
 ### Examples of usage
 
-Using `compress()` and `decompress()` to demonstrate round-trip compression:
+Reading in a compressed file:
 ```py
->>> import huffmanfile
->>> data = b"""\
-... Donec rhoncus quis sapien sit amet molestie. Fusce scelerisque vel augue
-... nec ullamcorper. Nam rutrum pretium placerat. Aliquam vel tristique lorem,
-... sit amet cursus ante. In interdum laoreet mi, sit amet ultrices purus
-... pulvinar a. Nam gravida euismod magna, non varius justo tincidunt feugiat.
-... Aliquam pharetra lacus non risus vehicula rutrum. Maecenas aliquam leo
-... felis. Pellentesque semper nunc sit amet nibh ullamcorper, ac elementum
-... dolor luctus. Curabitur lacinia mi ornare consectetur vestibulum.""" * 3
->>> c = huffmanfile.compress(data)
->>> len(data) / len(c)  # Data compression ratio
-1.1872037914691944
->>> d = huffmanfile.decompress(c)
->>> data == d  # Check equality to original object after round-trip
-True
+import huffmanfile
+with huffmanfile.open("file.hm") as f:
+    file_content = f.read()
 ```
 
-Using `HuffmanCompressor` for incremental compression:
+Creating a compressed file:
 ```py
->>> import huffmanfile
->>> def gen_data(parts=10, partsize=1000):
-...     for _ in range(parts):
-...         yield b"z" * partsize
-...
->>> comp = huffmanfile.HuffmanCompressor()
->>> out = b""
->>> for data_part in gen_data():
-...     # Provide data to the compressor object
-...     out += comp.compress(data_part)
-...
->>> # Finish the compression process.  Call this once you have
->>> # finished providing data to the compressor.
->>> out += comp.flush()
+import huffmanfile
+data = b"Insert Data Here"
+with huffmanfile.open(file.hm", "w") as f:
+    f.write(data)
 ```
 
-The example above uses a very "nonrandom" stream of data (a stream of b”z” parts).
-Random data tends to compress poorly, while ordered, repetitive data usually yields a
-high compression ratio.
+Compressing data in memory:
+```py
+import huffmanfile
+data_in = b"Insert Data Here"
+data_out = huffmanfile.compress(data_in)
+```
+
+Incremental compression:
+```py
+import huffmanfile
+hfc = huffmanfile.HuffmanCompressor()
+out1 = hfc.compress(b"Some data\n")
+out2 = hfc.compress(b"Another piece of data\n")
+out3 = hfc.compress(b"Even more data\n")
+out4 = hfc.flush()
+# Concatenate all the partial results:
+result = b"".join([out1, out2, out3, out4])
+```
+
+Note, random data tends to compress poorly, while ordered, repetitive data usually
+yields a high compression ratio.
 
 ## License
 

@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="huffmanfile",
-    use_scm_version=True,
+    version="1.0.0",
     description="Python bindings for libhuffman",
     long_description=Path("README.md").read_text(),
     url="https://github.com/ybubnov/libhuffman",

@@ -32,3 +32,23 @@ def test_compress_incremental():
 
     out += comp.flush()
     assert huffmanfile.decompress(out) == data
+
+
+def test_write_file(tmp_path):
+    data = """\
+    Donec rhoncus quis sapien sit amet molestie. Fusce scelerisque vel augue
+    nec ullamcorper. Nam rutrum pretium placerat. Aliquam vel tristique lorem,
+    sit amet cursus ante. In interdum laoreet mi, sit amet ultrices purus
+    pulvinar a. Nam gravida euismod magna, non varius justo tincidunt feugiat.
+    Aliquam pharetra lacus non risus vehicula rutrum. Maecenas aliquam leo
+    felis. Pellentesque semper nunc sit amet nibh ullamcorper, ac elementum
+    dolor luctus. Curabitur lacinia mi ornare consectetur vestibulum."""
+
+    filename = tmp_path / "archive.hm"
+
+    with huffmanfile.open(filename, "wt") as f:
+        f.write(data)
+    with huffmanfile.open(filename, "rt") as f:
+        content = f.read()
+
+    assert content == data
