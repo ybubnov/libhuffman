@@ -11,7 +11,7 @@ setup(
     description="Python bindings for libhuffman",
 
     url="https://github.com/ybubnov/libhuffman",
-    author="Yasha Bubnov"
+    author="Yasha Bubnov",
     author_email="girokompass@gmail.com",
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
