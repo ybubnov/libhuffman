@@ -11,8 +11,8 @@ setup(
     description="Python bindings for libhuffman",
 
     url="https://github.com/ybubnov/libhuffman",
-    author="Chris Copeland",
-    author_email="chris@chrisnc.net",
+    author="Yasha Bubnov"
+    author_email="girokompass@gmail.com",
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -21,10 +21,10 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: System :: Archiving :: Compression",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "License :: OSI Approved :: Apache Software License",
         "License :: OSI Approved :: MIT License",
     ],
