@@ -1,6 +1,9 @@
 name: Build
 
-on: [pull_request]
+on:
+  create:
+    tags:
+      - 'v*'
 
 jobs:
   build_wheels:
@@ -43,4 +46,4 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
-          repository_url: https://test.pypi.org/legacy/
+          # repository_url: https://test.pypi.org/legacy/
