@@ -4,7 +4,6 @@ on: [pull_request]
 
 jobs:
   build_wheels:
-    #name: Build wheels ${{ matrix.os }} ${{ matrix.cibw_arch }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -24,6 +23,7 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: 'cp37-* cp38-* cp39-* cp310-*'
+          CIBW_SKIP: '*-musllinux_*'
           CIBW_ARCHS: ${{ matrix.cibw_arch }}
 
       - uses: actions/upload-artifact@v2
