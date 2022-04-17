@@ -5,11 +5,15 @@ from setuptools import setup
 setup(
     name="huffmanfile",
     version="1.0.0",
-    description="Python bindings for libhuffman",
+
     long_description=Path("README.md").read_text(),
+    long_description_content_type="text/markdown",
+    description="Python bindings for libhuffman",
+
     url="https://github.com/ybubnov/libhuffman",
     author="Chris Copeland",
     author_email="chris@chrisnc.net",
+
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -24,6 +28,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "License :: OSI Approved :: MIT License",
     ],
+
     keywords=["huffman", "encoding", "decoding", "compression"],
     package_dir={"huffmanfile": "huffmanfile"},
     packages=["huffmanfile"],
