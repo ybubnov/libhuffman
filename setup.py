@@ -31,8 +31,8 @@ setup(
     package_data={"build_tools": ["setup_ffi.py"]},
 
     tests_require=["pytest"],
-    install_requires=["cffi>=1.12.0"],
-    setup_requires=["cffi>=1.12.0", "setuptools_scm"],
+    install_requires=["cffi>=1.15.0"],
+    setup_requires=["cffi>=1.15.0", "setuptools_scm"],
 
     cffi_modules=["setup_ffi.py:ffibuilder"],
 )

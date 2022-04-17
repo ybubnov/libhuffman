@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels ${{ matrix.os }} ${{ matrix.cibw_python }} ${{ matrix.cibw_arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -21,9 +21,7 @@ jobs:
         run: python -m pip install -U cibuildwheel==2.4.0
 
       - name: Build wheels
-        run: |
-          rm -rf .eggs
-          python -m cibuildwheel --output-dir wheelhouse
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: ${{ matrix.cibw_python }}
           CIBW_ARCHS: ${{ matrix.cibw_arch }}
