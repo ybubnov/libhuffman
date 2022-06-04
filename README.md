@@ -28,8 +28,9 @@ $ make install
 
 ## Usage
 
-At this moment only two methods for encoding and decoding are available. To encode the
-data from the file descriptor at the first step the configuration should be defined:
+To encode the data, use either a file stream `huf_fdopen` or `huf_memopen` to use
+an in-memory stream. Consider the following example, where the input is a standard
+input stream and output of the encoder is a memory buffer of 1MiB size.
 ```c
 huf_read_writer_t *file_in;
 huf_fdopen(&file_in, 0) // Read from standard input.
@@ -43,23 +44,42 @@ huf_config_t config = {
    .writer = mem_out,
    .length = length,
    .blocksize = HUF_64KIB_BUFFER,
-   .reader_buffer_size = HUF_128KIB_BUFFER,
-   .writer_buffer_size = HUF_128KIB_BUFFER,
 };
 ```
 
-- `fdin` - input file descriptor.
-- `fdout` - output file descriptor.
+- `reader` - input ready for the encoding.
+- `writer` - output for the encoded data.
 - `length` - length of the data in bytes to encode.
-- `blocksize` - the length of each chunk in bytes (instead of reading the file twice `libhuffman` is reading and encoding the data by blocks).
-- `reader_buffer_size` - this is opaque reader buffer size in bytes, if the buffer size is set to zero, all reads will be unbuffered.
-- `writer_buffer_size` - this is opaque writer buffer size ib bytes, if the buffer size is set to zero, all writes will be unbuffered.
+- `blocksize` - the length of each chunk in bytes (instead of reading the file twice
+`libhuffman` reads and encodes data by blocks).
+- `reader_buffer_size` - this is opaque reader buffer size in bytes, if the buffer size
+is set to zero, all reads will be unbuffered.
+- `writer_buffer_size` - this is opaque writer buffer size ib bytes, if the buffer size
+is set to zero, all writes will be unbuffered.
 
-After the configuration is created, it could be passed right to the required function (to encode or to decode):
+After the configuration is created, it could be passed right to the required function
+(to encode or to decode):
 ```c
-huf_error_t err = huf_encode(&config);
+huf_error_t err = huf_encode(&config); // huf_decode(&config) for decoding
 printf("%s\n", huf_error_string(err));
 ```
+
+After the encoding, the output memory buffer could be automatically scaled to fit all
+necessary encoded bytes. To retrieve a new length of the buffer, use the following:
+```c
+size_t out_size = 0;
+huf_memlen(mem_out, &out_size);
+```
+
+Once the processing of the encoding is completed, consider freeing the allocated memory:
+```c
+// This does not free underlying buffer, call free for the buffer.
+huf_memclose(&mem_out);
+
+free(buf);
+```
+
+For more examples, please, refer to the [`tests`](tests) directory.
 
 ## Python Bindings
 
