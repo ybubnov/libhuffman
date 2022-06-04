@@ -28,23 +28,35 @@ $ make install
 
 ## Usage
 
+### Encoding
+
 To encode the data, use either a file stream `huf_fdopen` or `huf_memopen` to use
-an in-memory stream. Consider the following example, where the input is a standard
-input stream and output of the encoder is a memory buffer of 1MiB size.
+an in-memory stream. Consider the following example, where the input is a memory
+stream and output of the encoder is also memory buffer of 1MiB size.
 ```c
-huf_read_writer_t *file_in;
-huf_fdopen(&file_in, 0) // Read from standard input.
+void *bufin, *bufout = NULL;
+huf_read_writer_t *input, *output = NULL;
 
-void *buf = NULL;
-huf_read_writer_t *mem_out;
-huf_memopen(&mem_out, &buf, HUF_1MIB_BUFFER);
+// Allocate the necessary memory.
+huf_memopen(&input, &bufin, HUF_1MIB_BUFFER);
+huf_memopen(&output, &bufout, HUF_1MIB_BUFFER);
 
+// Write the data for encoding to the input.
+size_t input_len = 10;
+input->write(input->strea, "0123456789", input_len);
+```
+
+Create a configuration used to encode the input string using Huffman algorithm:
+```c
 huf_config_t config = {
-   .reader = file_in,
-   .writer = mem_out,
-   .length = length,
+   .reader = input,
+   .length = input_len,
+   .writer = output,
    .blocksize = HUF_64KIB_BUFFER,
 };
+
+huf_error_t err = huf_encode(&config);
+printf("%s\n", huf_error_string(err));
 ```
 
 - `reader` - input ready for the encoding.
@@ -57,19 +69,41 @@ is set to zero, all reads will be unbuffered.
 - `writer_buffer_size` - this is opaque writer buffer size ib bytes, if the buffer size
 is set to zero, all writes will be unbuffered.
 
-After the configuration is created, it could be passed right to the required function
-(to encode or to decode):
-```c
-huf_error_t err = huf_encode(&config); // huf_decode(&config) for decoding
-printf("%s\n", huf_error_string(err));
-```
-
 After the encoding, the output memory buffer could be automatically scaled to fit all
 necessary encoded bytes. To retrieve a new length of the buffer, use the following:
 ```c
 size_t out_size = 0;
-huf_memlen(mem_out, &out_size);
+huf_memlen(output, &out_size);
+
+// The data is accessible through the `bufout` variable or using `read` function:
+uint8_t result[10] = {0};
+size_t result_len = 10;
+
+// result_len is inout parameter, and will contain the length of encoding
+// after the reading from the stream.
+output->read(output->stream, result, &result_len);
 ```
+
+### Decoding
+
+Decoding is similar to the encoding, except that reader attribute of the configuration
+should contain the data used to decode:
+```c
+input->write(input->stream, decoding, decoding_len);
+
+huf_config_t config = {
+    .reader = input,
+    .length = input_len,
+    .writer = output,
+    .blockize = HUF_64KIB_BUFFER,
+};
+
+
+// After the decoding the original data will be writter to the `output`.
+huf_decode(&config);
+```
+
+## Resource Deallocation
 
 Once the processing of the encoding is completed, consider freeing the allocated memory:
 ```c
