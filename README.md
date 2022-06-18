@@ -43,7 +43,7 @@ huf_memopen(&output, &bufout, HUF_1MIB_BUFFER);
 
 // Write the data for encoding to the input.
 size_t input_len = 10;
-input->write(input->strea, "0123456789", input_len);
+input->write(input->stream, "0123456789", input_len);
 ```
 
 Create a configuration used to encode the input string using Huffman algorithm:
@@ -103,7 +103,7 @@ huf_config_t config = {
 huf_decode(&config);
 ```
 
-## Resource Deallocation
+### Resource Deallocation
 
 Once the processing of the encoding is completed, consider freeing the allocated memory:
 ```c
