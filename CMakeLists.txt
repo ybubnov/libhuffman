@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 project(huffman C)
 enable_testing()
 
-set(huffman_LIBRARY_VERSION "1.0.2")
+set(huffman_LIBRARY_VERSION "1.0.3")
 set(huffman_LIBRARY_SOVERSION "1")
 
 

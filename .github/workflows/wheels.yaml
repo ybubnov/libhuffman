@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        cibw_arch: ['auto64']
+        cibw_arch: ['x86_64', 'aarch64', 'arm64', 'universal2']
 
     runs-on: ${{ matrix.os }}
 
