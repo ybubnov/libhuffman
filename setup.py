@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="huffmanfile",
-    version="1.0.3",
+    version="1.0.4",
 
     long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
@@ -21,10 +21,11 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: System :: Archiving :: Compression",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "License :: OSI Approved :: Apache Software License",
         "License :: OSI Approved :: MIT License",
     ],
@@ -37,7 +38,7 @@ setup(
 
     tests_require=["pytest"],
     install_requires=["cffi>=1.15.0"],
-    setup_requires=["cffi>=1.15.0", "setuptools_scm"],
+    setup_requires=["cffi>=1.15.0", "setuptools", "setuptools_scm"],
 
     cffi_modules=["setup_ffi.py:ffibuilder"],
 )
