@@ -15,9 +15,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v6
 
       - name: Install cibuildwheel
         run: python -m pip install -U cibuildwheel==2.16.5
@@ -25,11 +25,11 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: 'cp38-* cp39-* cp310-* cp311-*'
+          CIBW_BUILD: 'cp310-* cp311-* cp312-* cp313-* cp314-*'
           CIBW_SKIP: '*-musllinux_* *-manylinux_aarch64 *-manylinux_ppc64le *-manylinux_s390x'
           CIBW_ARCHS: ${{ matrix.cibw_arch }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v8
         with:
           path: wheelhouse/*.whl
 
@@ -42,7 +42,7 @@ jobs:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: pypa/gh-action-pypi-publish@v1.14.0
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
