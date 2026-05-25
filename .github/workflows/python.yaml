@@ -22,7 +22,7 @@ jobs:
         python-version: ${{matrix.python-version}}
 
     - name: Install Python Dependencies
-      run: pip install cffi pytest
+      run: pip install cffi pytest setuptools
 
     - name: Compile C Library
       run: python setup_ffi.py
