@@ -29,7 +29,7 @@ jobs:
           CIBW_SKIP: '*-musllinux_* *-manylinux_aarch64 *-manylinux_ppc64le *-manylinux_s390x'
           CIBW_ARCHS: ${{ matrix.cibw_arch }}
 
-      - uses: actions/upload-artifact@v8
+      - uses: actions/upload-artifact@v7
         with:
           path: wheelhouse/*.whl
 
@@ -37,7 +37,7 @@ jobs:
     needs: [build_wheels]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v8
         with:
           name: artifact
           path: dist
